@@ -104,30 +104,35 @@ def display_data_input():
         sheet_names = excel_file.sheet_names
         st.write("Available Sheets:", sheet_names)
 
-        # Ask the user to select a sheet
-        selected_sheet = st.selectbox("Select a sheet", sheet_names)
+        # Ask the user to select a sheet for current week and previous week
+        selected_current_sheet = st.selectbox("Select Current Week Sheet", sheet_names, key="current_week")
+        selected_previous_sheet = st.selectbox("Select Previous Week Sheet", sheet_names, key="previous_week")
 
-        # Load the selected sheet into a DataFrame
-        df = pd.read_excel(uploaded_file, sheet_name=selected_sheet)
+        # Load the selected sheets into DataFrames
+        df_current = pd.read_excel(uploaded_file, sheet_name=selected_current_sheet)
+        df_previous = pd.read_excel(uploaded_file, sheet_name=selected_previous_sheet)
 
-        # Display the first few rows of the selected sheet for preview
-        st.write(f"Data from {selected_sheet}:")
-        st.dataframe(df.head())
+        # Display the first few rows of the selected sheets for preview
+        st.write(f"Current Week Data from {selected_current_sheet}:")
+        st.dataframe(df_current.head())
+        
+        st.write(f"Previous Week Data from {selected_previous_sheet}:")
+        st.dataframe(df_previous.head())
 
-        return df
+        return df_current, df_previous
 
 # Function to display the dashboard with metrics
-def display_dashboard(df):
+def display_dashboard(df_current, df_previous):
     st.title("Sales Dashboard")
 
-    if df is None:
+    if df_current is None or df_previous is None:
         st.warning("Please upload your sales data first.")
         return
 
     # Committed for the Month Data
     st.markdown("### 📝 Committed Data")
-    committed_current_week = df['Committed for the Month (Current Week)'].sum()  # Example column name
-    committed_previous_week = df['Committed for the Month (Previous Week)'].sum()  # Example column name
+    committed_current_week = df_current['Committed for the Month'].sum()  # Adjust column name based on your data
+    committed_previous_week = df_previous['Committed for the Month'].sum()  # Adjust column name based on your data
     committed_delta = committed_current_week - committed_previous_week
 
     # Create KPI Card for Committed Data
@@ -154,8 +159,8 @@ def display_dashboard(df):
 
     # Upside Data
     st.markdown("### 🔁 Upside Data")
-    upside_current_week = df['Upside for the Month (Current Week)'].sum()  # Example column name
-    upside_previous_week = df['Upside for the Month (Previous Week)'].sum()  # Example column name
+    upside_current_week = df_current['Upside for the Month'].sum()  # Adjust column name based on your data
+    upside_previous_week = df_previous['Upside for the Month'].sum()  # Adjust column name based on your data
     upside_delta = upside_current_week - upside_previous_week
 
     # Create KPI Card for Upside Data
@@ -182,8 +187,8 @@ def display_dashboard(df):
 
     # Closed Won Data
     st.markdown("### ✅ Closed Won Data")
-    closed_won_current_week = df['Closed Won (Current Week)'].sum()  # Example column name
-    closed_won_previous_week = df['Closed Won (Previous Week)'].sum()  # Example column name
+    closed_won_current_week = df_current['Closed Won'].sum()  # Adjust column name based on your data
+    closed_won_previous_week = df_previous['Closed Won'].sum()  # Adjust column name based on your data
     closed_won_delta = closed_won_current_week - closed_won_previous_week
 
     # Create KPI Card for Closed Won Data
@@ -237,13 +242,12 @@ def display_dashboard(df):
         """, unsafe_allow_html=True)
 
 def main():
-    st.sidebar.title("Navigation")
     page = st.sidebar.radio("Select Page", ["Data Input", "Dashboard"])
 
     if page == "Data Input":
-        df = display_data_input()
+        df_current, df_previous = display_data_input()
     else:
-        display_dashboard(df)
+        display_dashboard(df_current, df_previous)
 
 if __name__ == "__main__":
     main()
