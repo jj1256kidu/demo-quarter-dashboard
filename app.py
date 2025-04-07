@@ -116,7 +116,7 @@ def display_sales_owner_table(df_current, df_previous, selected_status, selected
         overall_committed_previous = committed_previous + closed_won_previous
         overall_committed_delta = overall_committed_current - overall_committed_previous
 
-        # Append data
+        # Append data for the Sales Owner
         data.append({
             "Sales Owner": owner,
             "Overall Committed (Current Week)": f"₹ {overall_committed_current/1e5:.1f}L",
