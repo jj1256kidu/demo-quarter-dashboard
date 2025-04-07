@@ -9,42 +9,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for modern design
-st.markdown("""
-    <style>
-        /* Add your CSS styling here for modern design */
-        .metric-container {
-            display: flex;
-            justify-content: space-evenly;
-            margin-top: 40px;
-        }
-        .card {
-            background: #2C3E50;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
-            text-align: center;
-            margin: 15px;
-        }
-        .metric-label {
-            font-size: 1.2em;
-            color: #BDC3C7;
-            margin-bottom: 10px;
-        }
-        .metric-value {
-            font-size: 3.5em;
-            color: #FFFFFF;
-            font-weight: 800;
-        }
-        .delta-positive {
-            color: #2ECC71;
-        }
-        .delta-negative {
-            color: #E74C3C;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
 # Function to display data input (upload and preview)
 def display_data_input():
     st.title("Data Input")
