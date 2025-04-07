@@ -44,8 +44,36 @@ def display_committed_for_month(df_current, df_previous):
     df["Previous Week"] = (df["Previous Week"] / 1e5).round(0).astype(int)
     df["Delta"] = (df["Delta"] / 1e5).round(0).astype(int)
 
-    # Display the table with Streamlit
-    st.dataframe(df, use_container_width=True)
+    # Apply custom CSS to remove gaps, center-align, and remove width issues
+    st.markdown("""
+        <style>
+            .streamlit-expanderHeader {
+                font-size: 20px;
+                font-weight: bold;
+            }
+            .stDataFrame {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin-top: 20px;
+            }
+            .stTable {
+                border-collapse: collapse;
+                width: 100%;
+            }
+            .stTable th, .stTable td {
+                padding: 10px;
+                text-align: center;
+                border: 1px solid #ddd;
+            }
+            .stTable th {
+                background-color: #f2f2f2;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # Display the table with Streamlit (centered)
+    st.dataframe(df.style.set_table_attributes('class="stTable"'), use_container_width=True)
 
 # Streamlit app
 def main():
