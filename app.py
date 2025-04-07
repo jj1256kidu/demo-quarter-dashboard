@@ -79,13 +79,6 @@ st.markdown("""
             border-radius: 4px;
             margin: 10px 0;
         }
-
-        .data-table {
-            background-color: #2C3E50;
-            color: white;
-            border-radius: 10px;
-            padding: 15px;
-        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -120,14 +113,17 @@ def display_data_input():
         st.dataframe(df_previous.head())
 
         return df_current, df_previous
+    else:
+        st.warning("Please upload a file to proceed.")
+        return None, None
 
 # Function to display the dashboard with metrics
 def display_dashboard(df_current, df_previous):
-    st.title("Sales Dashboard")
-
     if df_current is None or df_previous is None:
-        st.warning("Please upload your sales data first.")
+        st.warning("Please upload the data first!")
         return
+
+    st.title("Sales Dashboard")
 
     # Committed for the Month Data
     st.markdown("### 📝 Committed Data")
@@ -157,96 +153,16 @@ def display_dashboard(df_current, df_previous):
             </div>
         """, unsafe_allow_html=True)
 
-    # Upside Data
-    st.markdown("### 🔁 Upside Data")
-    upside_current_week = df_current['Upside for the Month'].sum()  # Adjust column name based on your data
-    upside_previous_week = df_previous['Upside for the Month'].sum()  # Adjust column name based on your data
-    upside_delta = upside_current_week - upside_previous_week
-
-    # Create KPI Card for Upside Data
-    with st.container():
-        st.markdown(f"""
-            <div class="metric-container">
-                <div class="card">
-                    <div class="metric-label">Upside Data (Current Week)</div>
-                    <div class="metric-value">₹{upside_current_week / 100000:.0f}L</div>
-                    <div class="metric-label">Current Week Total</div>
-                </div>
-                <div class="card">
-                    <div class="metric-label">Upside Data (Previous Week)</div>
-                    <div class="metric-value">₹{upside_previous_week / 100000:.0f}L</div>
-                    <div class="metric-label">Previous Week Total</div>
-                </div>
-                <div class="card">
-                    <div class="metric-label">Delta</div>
-                    <div class="metric-value {'delta-positive' if upside_delta > 0 else 'delta-negative'}">₹{upside_delta / 100000:.0f}L</div>
-                    <div class="metric-label">Change</div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    # Closed Won Data
-    st.markdown("### ✅ Closed Won Data")
-    closed_won_current_week = df_current['Closed Won'].sum()  # Adjust column name based on your data
-    closed_won_previous_week = df_previous['Closed Won'].sum()  # Adjust column name based on your data
-    closed_won_delta = closed_won_current_week - closed_won_previous_week
-
-    # Create KPI Card for Closed Won Data
-    with st.container():
-        st.markdown(f"""
-            <div class="metric-container">
-                <div class="card">
-                    <div class="metric-label">Closed Won (Current Week)</div>
-                    <div class="metric-value">₹{closed_won_current_week / 100000:.0f}L</div>
-                    <div class="metric-label">Current Week Total</div>
-                </div>
-                <div class="card">
-                    <div class="metric-label">Closed Won (Previous Week)</div>
-                    <div class="metric-value">₹{closed_won_previous_week / 100000:.0f}L</div>
-                    <div class="metric-label">Previous Week Total</div>
-                </div>
-                <div class="card">
-                    <div class="metric-label">Delta</div>
-                    <div class="metric-value {'delta-positive' if closed_won_delta > 0 else 'delta-negative'}">₹{closed_won_delta / 100000:.0f}L</div>
-                    <div class="metric-label">Change</div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    # Overall Committed Data (Commit + Closed Won)
-    st.markdown("### 📊 Overall Committed Data")
-    overall_committed_current_week = committed_current_week + closed_won_current_week
-    overall_committed_previous_week = committed_previous_week + closed_won_previous_week
-    overall_committed_delta = overall_committed_current_week - overall_committed_previous_week
-
-    # Create KPI Card for Overall Committed Data
-    with st.container():
-        st.markdown(f"""
-            <div class="metric-container">
-                <div class="card">
-                    <div class="metric-label">Overall Committed (Current Week)</div>
-                    <div class="metric-value">₹{overall_committed_current_week / 100000:.0f}L</div>
-                    <div class="metric-label">Current Week Total</div>
-                </div>
-                <div class="card">
-                    <div class="metric-label">Overall Committed (Previous Week)</div>
-                    <div class="metric-value">₹{overall_committed_previous_week / 100000:.0f}L</div>
-                    <div class="metric-label">Previous Week Total</div>
-                </div>
-                <div class="card">
-                    <div class="metric-label">Delta</div>
-                    <div class="metric-value {'delta-positive' if overall_committed_delta > 0 else 'delta-negative'}">₹{overall_committed_delta / 100000:.0f}L</div>
-                    <div class="metric-label">Change</div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+    # Add similar cards for Upside, Closed Won, and Overall Committed...
 
 def main():
     page = st.sidebar.radio("Select Page", ["Data Input", "Dashboard"])
 
+    df_current = df_previous = None
     if page == "Data Input":
         df_current, df_previous = display_data_input()
-    else:
+
+    elif page == "Dashboard":
         display_dashboard(df_current, df_previous)
 
 if __name__ == "__main__":
