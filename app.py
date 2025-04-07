@@ -107,18 +107,20 @@ try:
         upside_table = prepare_table(df_upside_current, df_upside_previous, "Upside")
         closed_table = prepare_table(df_closed_current, df_closed_previous, "Closed Won")
 
-        for table in [commit_table, upside_table, closed_table]:
+        # Combined Committed + Closed Won
+        combined_current = df_commit_current.copy()
+        combined_previous = df_commit_previous.copy()
+
+        combined_current["Amount"] += df_closed_current.groupby("Sales Owner")["Amount"].sum()
+        combined_previous["Amount"] += df_closed_previous.groupby("Sales Owner")["Amount"].sum()
+
+        combined_table = prepare_table(combined_current, combined_previous, "Committed + Closed")
+
+        for table in [commit_table, upside_table, closed_table, combined_table]:
             for col in table.columns[1:]:
                 table[col] = (table[col] / 1e5).astype(int)
             table = add_total_row(table)
             table = add_serial_numbers(table)
-
-        commit_table = add_total_row(commit_table)
-        commit_table = add_serial_numbers(commit_table)
-        upside_table = add_total_row(upside_table)
-        upside_table = add_serial_numbers(upside_table)
-        closed_table = add_total_row(closed_table)
-        closed_table = add_serial_numbers(closed_table)
 
         col1, col2, col3 = st.columns(3)
 
@@ -133,6 +135,9 @@ try:
         with col3:
             st.markdown("### ✅ Closed Won Comparison (in ₹ Lakhs)")
             st.dataframe(closed_table, use_container_width=True)
+
+        st.markdown("### 📦 Overall Committed + Closed Won (in ₹ Lakhs)")
+        st.dataframe(combined_table, use_container_width=True)
 
 except ModuleNotFoundError as e:
     print("Required module not found:", e)
