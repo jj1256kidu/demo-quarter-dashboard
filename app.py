@@ -13,30 +13,30 @@ try:
         st.session_state.sheet_names = []
 
     # Sidebar navigation
-    page = st.sidebar.radio("Navigate", ["\U0001F4C2 Data Input", "\U0001F4CA Quarter Summary Dashboard"])
+    page = st.sidebar.radio("Navigate", ["F4C2 Data Input", "F4CA Quarter Summary Dashboard"])
 
     # Page 1: Data Input
-    if page == "\U0001F4C2 Data Input":
-        st.title("\U0001F4C8 Weekly Commitment Comparison Tool")
-        st.markdown("#### \U0001F4C1 Upload Excel file")
+    if page == "F4C2 Data Input":
+        st.title("F4C8 Weekly Commitment Comparison Tool")
+        st.markdown("#### F4C1 Upload Excel file")
 
         uploaded_file = st.file_uploader("Drag and drop file here", type=["xlsx"])
         if uploaded_file:
             st.session_state.uploaded_file = uploaded_file
             xls = pd.ExcelFile(uploaded_file)
             st.session_state.sheet_names = xls.sheet_names
-            st.success("\u2705 Excel file loaded successfully!")
+            st.success("✅ Excel file loaded successfully!")
 
         if st.session_state.sheet_names:
             sheet1 = st.selectbox("Select Current Week Sheet", st.session_state.sheet_names, key="current_sheet")
             sheet2 = st.selectbox("Select Previous Week Sheet", st.session_state.sheet_names, key="previous_sheet")
 
     # Page 2: Quarter Summary Dashboard
-    elif page == "\U0001F4CA Quarter Summary Dashboard":
-        st.title("\U0001F4CA Quarter Summary Dashboard")
+    elif page == "F4CA Quarter Summary Dashboard":
+        st.title("F4CA Quarter Summary Dashboard")
 
         if not st.session_state.uploaded_file:
-            st.warning("\u26A0\uFE0F Please upload a file in the 'Data Input' page.")
+            st.warning("⚠️ Please upload a file in the 'Data Input' page.")
             st.stop()
 
         # Load selected sheets
@@ -76,6 +76,8 @@ try:
         df_commit_previous = filter_data(df_previous, "Committed for the Month")
         df_upside_current = filter_data(df_current, "Upside for the Month")
         df_upside_previous = filter_data(df_previous, "Upside for the Month")
+        df_closed_current = filter_data(df_current, "Closed Won")
+        df_closed_previous = filter_data(df_previous, "Closed Won")
 
         # Aggregation
         def agg_amount(df):
@@ -88,45 +90,31 @@ try:
             cur = agg_amount(cur).rename(columns={"Amount": f"Amount (Current Week)"})
             prev = agg_amount(prev).rename(columns={"Amount": f"Amount (Previous Week)"})
             df = all_owners_df.merge(cur, on="Sales Owner", how="left").merge(prev, on="Sales Owner", how="left").fillna(0)
-            df[f"\u2206 {value_name}"] = df[f"Amount (Current Week)"] - df[f"Amount (Previous Week)"]
+            df[f"∆ {value_name}"] = df[f"Amount (Current Week)"] - df[f"Amount (Previous Week)"]
             df = df.round(0)
             return df
 
-        commit_table = prepare_table(df_commit_current, df_commit_previous, "Committed")
-        upside_table = prepare_table(df_upside_current, df_upside_previous, "Upside")
+        closed_table = prepare_table(df_closed_current, df_closed_previous, "Closed Won")
 
-        # Convert to ₹ Lakhs
-        for col in commit_table.columns[1:]:
-            commit_table[col] = (commit_table[col] / 1e5).astype(int)
-        for col in upside_table.columns[1:]:
-            upside_table[col] = (upside_table[col] / 1e5).astype(int)
+        for col in closed_table.columns[1:]:
+            closed_table[col] = (closed_table[col] / 1e5).astype(int)
 
-        # Add totals
         def add_total_row(df, label="\U0001F4C8 Total"):
             total = df.drop(columns=["S. No."], errors="ignore").sum(numeric_only=True)
             total_row = pd.DataFrame([[label] + total.tolist()], columns=["Sales Owner"] + list(total.index))
             df = pd.concat([df, total_row], ignore_index=True)
             return df
 
-        # Add S.No. column
         def add_serial_numbers(df):
             df.insert(0, "S. No.", range(1, len(df)+1))
             df.loc[df["Sales Owner"] == "\U0001F4C8 Total", "S. No."] = ""
             return df
 
-        commit_table = add_total_row(commit_table)
-        commit_table = add_serial_numbers(commit_table)
-        upside_table = add_total_row(upside_table)
-        upside_table = add_serial_numbers(upside_table)
+        closed_table = add_total_row(closed_table)
+        closed_table = add_serial_numbers(closed_table)
 
-        # Display tables
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("### \U0001F4DC Commitment Comparison (in ₹ Lakhs)")
-            st.dataframe(commit_table, use_container_width=True)
-        with col2:
-            st.markdown("### \U0001F501 Upside Comparison (in ₹ Lakhs)")
-            st.dataframe(upside_table, use_container_width=True)
+        st.markdown("### \U00002705 Closed Won Comparison (in ₹ Lakhs)")
+        st.dataframe(closed_table, use_container_width=True)
 
 except ModuleNotFoundError as e:
     print("Required module not found:", e)
