@@ -44,98 +44,58 @@ if uploaded_file:
             st.stop()
 
         committed_type = "Committed for the month"
-        upside_type = "Upside for the month"
 
         current_committed_df = current_df[current_df['Status'].str.strip() == committed_type]
         previous_committed_df = previous_df[previous_df['Status'].str.strip() == committed_type]
 
-        current_upside_df = current_df[current_df['Status'].str.strip() == upside_type]
-        previous_upside_df = previous_df[previous_df['Status'].str.strip() == upside_type]
-
-        current_committed = current_committed_df['Amount'].sum()
-        previous_committed = previous_committed_df['Amount'].sum()
-        delta_committed = current_committed - previous_committed
-
-        current_upside = current_upside_df['Amount'].sum()
-        previous_upside = previous_upside_df['Amount'].sum()
-        delta_upside = current_upside - previous_upside
-
-        st.markdown("### 📈 Commitment Overview")
-        mcol1, mcol2 = st.columns(2)
-        with mcol1:
-            st.subheader("✅ Committed for the Month")
-            st.metric("Current Total", f"₹{current_committed:,.0f}", f"₹{delta_committed:,.0f}")
-        with mcol2:
-            st.subheader("🔄 Upside for the Month")
-            st.metric("Current Total", f"₹{current_upside:,.0f}", f"₹{delta_upside:,.0f}")
-
-        st.markdown("#### 💾 Q1 SUMMARY – Sales Owner")
         current_committed_df['Sales Owner'] = current_committed_df['Sales Owner'].fillna("Unknown")
         previous_committed_df['Sales Owner'] = previous_committed_df['Sales Owner'].fillna("Unknown")
-
-        current_grouped = current_committed_df.groupby('Sales Owner')['Amount'].sum().reset_index()
-        previous_grouped = previous_committed_df.groupby('Sales Owner')['Amount'].sum().reset_index()
-
-        merged = pd.merge(current_grouped, previous_grouped, on='Sales Owner', how='outer', suffixes=('_Current Week', '_Previous Week')).fillna(0)
-        merged['Delta'] = merged['Amount_Current Week'] - merged['Amount_Previous Week']
-        merged = merged.rename(columns={
-            'Amount_Current Week': 'Overall Committed (Current Week)',
-            'Amount_Previous Week': 'Overall Committed (Previous Week)'
-        })
-
-        total_row = pd.DataFrame({
-            'Sales Owner': ['Total'],
-            'Overall Committed (Current Week)': [merged['Overall Committed (Current Week)'].sum()],
-            'Overall Committed (Previous Week)': [merged['Overall Committed (Previous Week)'].sum()],
-            'Delta': [merged['Delta'].sum()]
-        })
-
-        sales_final = pd.concat([merged, total_row], ignore_index=True)
-        row_df = sales_final.copy()
-        sales_styled = row_df.style \
-            .format({
-                'Overall Committed (Current Week)': '₹{:,.0f}',
-                'Overall Committed (Previous Week)': '₹{:,.0f}',
-                'Delta': '₹{:,.0f}'
-            }) \
-            .map({'Delta': highlight_deltas}) \
-            .apply(lambda row: ['background-color: yellow; font-weight: bold;'] * len(row) if row.name == len(row_df) - 1 else [''] * len(row), axis=1)
-
-        st.dataframe(sales_styled)
-
-        st.markdown("#### 💾 Q1 SUMMARY – Function Overview")
         current_committed_df['Practice'] = current_committed_df['Practice'].fillna("Unknown")
         previous_committed_df['Practice'] = previous_committed_df['Practice'].fillna("Unknown")
 
-        current_func = current_committed_df.groupby('Practice')['Amount'].sum().reset_index()
-        previous_func = previous_committed_df.groupby('Practice')['Amount'].sum().reset_index()
-
-        func_merged = pd.merge(current_func, previous_func, on='Practice', how='outer', suffixes=('_Current Week', '_Previous Week')).fillna(0)
-        func_merged['Delta'] = func_merged['Amount_Current Week'] - func_merged['Amount_Previous Week']
-        func_merged = func_merged.rename(columns={
-            'Amount_Current Week': 'Overall Committed (Current Week)',
-            'Amount_Previous Week': 'Overall Committed (Previous Week)'
+        st.markdown("#### 💾 Q1 SUMMARY – Sales Owner")
+        sales_grouped = pd.merge(
+            current_committed_df.groupby("Sales Owner")["Amount"].sum().reset_index().rename(columns={"Amount": "Current Week"}),
+            previous_committed_df.groupby("Sales Owner")["Amount"].sum().reset_index().rename(columns={"Amount": "Previous Week"}),
+            on="Sales Owner",
+            how="outer"
+        ).fillna(0)
+        sales_grouped["Delta"] = sales_grouped["Current Week"] - sales_grouped["Previous Week"]
+        total_row = pd.DataFrame({
+            "Sales Owner": ["Total"],
+            "Current Week": [sales_grouped["Current Week"].sum()],
+            "Previous Week": [sales_grouped["Previous Week"].sum()],
+            "Delta": [sales_grouped["Delta"].sum()]
         })
+        sales_final = pd.concat([sales_grouped, total_row], ignore_index=True)
+        st.dataframe(
+            sales_final.style
+                .format({"Current Week": "₹{:,.0f}", "Previous Week": "₹{:,.0f}", "Delta": "₹{:,.0f}"})
+                .map({"Delta": highlight_deltas})
+                .apply(lambda row: ['background-color: yellow; font-weight: bold;'] * len(row) if row.name == len(sales_final) - 1 else [''] * len(row), axis=1)
+        )
 
+        st.markdown("#### 💾 Q1 SUMMARY – Function Overview")
+        func_grouped = pd.merge(
+            current_committed_df.groupby("Practice")["Amount"].sum().reset_index().rename(columns={"Amount": "Current Week"}),
+            previous_committed_df.groupby("Practice")["Amount"].sum().reset_index().rename(columns={"Amount": "Previous Week"}),
+            on="Practice",
+            how="outer"
+        ).fillna(0)
+        func_grouped["Delta"] = func_grouped["Current Week"] - func_grouped["Previous Week"]
         func_total = pd.DataFrame({
-            'Practice': ['Total'],
-            'Overall Committed (Current Week)': [func_merged['Overall Committed (Current Week)'].sum()],
-            'Overall Committed (Previous Week)': [func_merged['Overall Committed (Previous Week)'].sum()],
-            'Delta': [func_merged['Delta'].sum()]
+            "Practice": ["Total"],
+            "Current Week": [func_grouped["Current Week"].sum()],
+            "Previous Week": [func_grouped["Previous Week"].sum()],
+            "Delta": [func_grouped["Delta"].sum()]
         })
-
-        func_final = pd.concat([func_merged, func_total], ignore_index=True)
-        row_df = func_final.copy()
-        func_styled = row_df.style \
-            .format({
-                'Overall Committed (Current Week)': '₹{:,.0f}',
-                'Overall Committed (Previous Week)': '₹{:,.0f}',
-                'Delta': '₹{:,.0f}'
-            }) \
-            .map({'Delta': highlight_deltas}) \
-            .apply(lambda row: ['background-color: yellow; font-weight: bold;'] * len(row) if row.name == len(row_df) - 1 else [''] * len(row), axis=1)
-
-        st.dataframe(func_styled)
+        func_final = pd.concat([func_grouped, func_total], ignore_index=True)
+        st.dataframe(
+            func_final.style
+                .format({"Current Week": "₹{:,.0f}", "Previous Week": "₹{:,.0f}", "Delta": "₹{:,.0f}"})
+                .map({"Delta": highlight_deltas})
+                .apply(lambda row: ['background-color: yellow; font-weight: bold;'] * len(row) if row.name == len(func_final) - 1 else [''] * len(row), axis=1)
+        )
 
         st.markdown("### 📅 Download Summary Report")
 
