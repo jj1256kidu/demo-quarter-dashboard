@@ -14,6 +14,13 @@ def highlight_deltas(val):
         return 'color: red; font-weight: bold;'
     return ''
 
+def highlight_total_rows(df):
+    def style_row(row):
+        if row.name == len(df) - 1:
+            return ['background-color: yellow; font-weight: bold;'] * len(row)
+        return [''] * len(row)
+    return style_row
+
 if uploaded_file:
     try:
         # Load fixed sheet names
@@ -82,7 +89,7 @@ if uploaded_file:
             sales_final.style
                 .format({"Current Week": "₹{:,.0f}", "Previous Week": "₹{:,.0f}", "Delta": "₹{:,.0f}"})
                 .map({"Delta": highlight_deltas})
-                .apply(lambda row: ['background-color: yellow; font-weight: bold;'] * len(row) if row.name == len(sales_final) - 1 else [''] * len(row), axis=1)
+                .apply(highlight_total_rows(sales_final), axis=1)
         )
 
         # --- FUNCTION OVERVIEW SUMMARY ---
@@ -105,7 +112,7 @@ if uploaded_file:
             func_final.style
                 .format({"Current Week": "₹{:,.0f}", "Previous Week": "₹{:,.0f}", "Delta": "₹{:,.0f}"})
                 .map({"Delta": highlight_deltas})
-                .apply(lambda row: ['background-color: yellow; font-weight: bold;'] * len(row) if row.name == len(func_final) - 1 else [''] * len(row), axis=1)
+                .apply(highlight_total_rows(func_final), axis=1)
         )
 
         # --- DOWNLOAD ---
