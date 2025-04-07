@@ -99,20 +99,16 @@ def display_dashboard():
 
     st.title("Sales Dashboard")
 
-    # Check if 'Committed for the Month' exists in the data
-    if 'Committed for the Month' in df_current.columns:
-        committed_current_week = df_current['Committed for the Month'].sum()
-    else:
-        st.warning("'Committed for the Month' column not found in current week data")
-        committed_current_week = 0
+    # Filter the data based on "Status" column to check for Committed and Upside data
+    committed_current_week = df_current[df_current['Status'] == "Committed for the Month"]['Amount'].sum()
+    upside_current_week = df_current[df_current['Status'] == "Upside for the Month"]['Amount'].sum()
 
-    if 'Committed for the Month' in df_previous.columns:
-        committed_previous_week = df_previous['Committed for the Month'].sum()
-    else:
-        st.warning("'Committed for the Month' column not found in previous week data")
-        committed_previous_week = 0
+    committed_previous_week = df_previous[df_previous['Status'] == "Committed for the Month"]['Amount'].sum()
+    upside_previous_week = df_previous[df_previous['Status'] == "Upside for the Month"]['Amount'].sum()
 
+    # Calculate deltas
     committed_delta = committed_current_week - committed_previous_week
+    upside_delta = upside_current_week - upside_previous_week
 
     # Create KPI Card for Committed Data
     with st.container():
@@ -131,6 +127,26 @@ def display_dashboard():
                 <div class="card">
                     <div class="metric-label">Delta</div>
                     <div class="metric-value {'delta-positive' if committed_delta > 0 else 'delta-negative'}">₹{committed_delta / 100000:.0f}L</div>
+                    <div class="metric-label">Change</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown(f"""
+            <div class="metric-container">
+                <div class="card">
+                    <div class="metric-label">Upside Data (Current Week)</div>
+                    <div class="metric-value">₹{upside_current_week / 100000:.0f}L</div>
+                    <div class="metric-label">Current Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Upside Data (Previous Week)</div>
+                    <div class="metric-value">₹{upside_previous_week / 100000:.0f}L</div>
+                    <div class="metric-label">Previous Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Delta</div>
+                    <div class="metric-value {'delta-positive' if upside_delta > 0 else 'delta-negative'}">₹{upside_delta / 100000:.0f}L</div>
                     <div class="metric-label">Change</div>
                 </div>
             </div>
