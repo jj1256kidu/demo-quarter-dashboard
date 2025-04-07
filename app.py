@@ -56,17 +56,21 @@ try:
         df_previous = preprocess(df_previous)
 
         # Filter options
-        quarters = sorted(set(df_current["Quarter"].unique()) | set(df_previous["Quarter"].unique()))
+        quarters = sorted((set(df_current["Quarter"].unique()) | set(df_previous["Quarter"].unique())) - {"nan", "None", ""})
+        quarters.insert(0, "All")
         selected_quarter = st.selectbox("Select Quarter", quarters)
-        sales_owners = sorted(set(df_current["Sales Owner"].unique()) | set(df_previous["Sales Owner"].unique()))
+
+        sales_owners = sorted((set(df_current["Sales Owner"].unique()) | set(df_previous["Sales Owner"].unique())) - {"nan", "None", ""})
+        sales_owners.insert(0, "All")
         selected_owner = st.selectbox("Select Sales Owner", sales_owners)
 
         # Filter based on quarter and (optional) sales owner
         def filter_data(df, status_type):
-            filtered = df[df["Quarter"] == selected_quarter]
-            if selected_owner:
-                filtered = filtered[filtered["Sales Owner"] == selected_owner]
-            return filtered[filtered["Status"] == status_type]
+            if selected_quarter != "All":
+                df = df[df["Quarter"] == selected_quarter]
+            if selected_owner != "All":
+                df = df[df["Sales Owner"] == selected_owner]
+            return df[df["Status"] == status_type]
 
         df_commit_current = filter_data(df_current, "Committed for the Month")
         df_commit_previous = filter_data(df_previous, "Committed for the Month")
@@ -77,7 +81,8 @@ try:
         def agg_amount(df):
             return df.groupby("Sales Owner")["Amount"].sum().reset_index()
 
-        all_owners_df = pd.DataFrame({"Sales Owner": sales_owners})
+        unique_owners = sorted((set(df_current["Sales Owner"].unique()) | set(df_previous["Sales Owner"].unique())) - {"nan", "None", ""})
+        all_owners_df = pd.DataFrame({"Sales Owner": unique_owners})
 
         def prepare_table(cur, prev, value_name):
             cur = agg_amount(cur).rename(columns={"Amount": f"Amount (Current Week)"})
