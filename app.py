@@ -61,12 +61,15 @@ def display_committed_for_month(df_current, df_previous):
                 border-collapse: collapse;
                 width: 100%;
                 height: auto;
+                margin: 0;
+                padding: 0;
             }
             .stTable th, .stTable td {
-                padding: 6px 12px;
+                padding: 5px 12px;
                 text-align: center;
                 border: 1px solid #ddd;
                 font-size: 12px;
+                margin: 0;
             }
             .stTable th {
                 background-color: #f2f2f2;
