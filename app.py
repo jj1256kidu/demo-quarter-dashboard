@@ -3,7 +3,6 @@ import pandas as pd
 
 # Function to load data from the file
 def load_data(uploaded_file):
-    # Load the Excel file
     xls = pd.ExcelFile(uploaded_file)
     df_current = pd.read_excel(xls, sheet_name="Raw_Data")
     df_previous = pd.read_excel(xls, sheet_name="PreviousWeek_Raw_Data")
@@ -11,14 +10,12 @@ def load_data(uploaded_file):
 
 # Preprocessing to extract totals for the required fields
 def get_totals(df, status_type):
-    # Filter the data by Status Type (e.g., Committed for the Month, Upside for the Month, Closed Won)
     filtered_data = df[df['Status'] == status_type]
     total = filtered_data['Amount'].sum()
     return total
 
-# Function to clean and preprocess Sales Owner column
+# Function to clean and preprocess the Sales Owner column
 def clean_sales_owner_column(df):
-    # Strip any leading/trailing whitespace and replace NaN values with a placeholder (e.g., 'Unknown')
     df['Sales Owner'] = df['Sales Owner'].str.strip()
     df['Sales Owner'] = df['Sales Owner'].fillna('Unknown')
     return df
@@ -102,68 +99,61 @@ def display_sales_owner_table(df_current, df_previous, selected_status, selected
     for owner in sales_owners:
         committed_current = get_totals(df_current[df_current['Sales Owner'] == owner], "Committed for the Month")
         committed_previous = get_totals(df_previous[df_previous['Sales Owner'] == owner], "Committed for the Month")
-        committed_delta = committed_current - committed_previous
-
         upside_current = get_totals(df_current[df_current['Sales Owner'] == owner], "Upside for the Month")
         upside_previous = get_totals(df_previous[df_previous['Sales Owner'] == owner], "Upside for the Month")
-        upside_delta = upside_current - upside_previous
-
         closed_won_current = get_totals(df_current[df_current['Sales Owner'] == owner], "Closed Won")
         closed_won_previous = get_totals(df_previous[df_previous['Sales Owner'] == owner], "Closed Won")
-        closed_won_delta = closed_won_current - closed_won_previous
+        
+        # Calculate the delta for each
+        delta_committed = committed_current - committed_previous
+        delta_upside = upside_current - upside_previous
+        delta_closed_won = closed_won_current - closed_won_previous
 
-        overall_committed_current = committed_current + closed_won_current
-        overall_committed_previous = committed_previous + closed_won_previous
-        overall_committed_delta = overall_committed_current - overall_committed_previous
-
-        # Append data for the Sales Owner
         data.append({
             "Sales Owner": owner,
-            "Overall Committed (Current Week)": f"₹ {overall_committed_current/1e5:.1f}L",
-            "Overall Committed (Previous Week)": f"₹ {overall_committed_previous/1e5:.1f}L",
-            "Delta (Committed)": f"₹ {overall_committed_delta/1e5:.1f}L",
+            "Committed (Current Week)": committed_current,
+            "Committed (Previous Week)": committed_previous,
+            "∆ Committed": delta_committed,
+            "Upside (Current Week)": upside_current,
+            "Upside (Previous Week)": upside_previous,
+            "∆ Upside": delta_upside,
+            "Closed Won (Current Week)": closed_won_current,
+            "Closed Won (Previous Week)": closed_won_previous,
+            "∆ Closed Won": delta_closed_won
         })
 
-    # Create a DataFrame for displaying the table
     df_table = pd.DataFrame(data)
 
-    # Highlight changes
+    # Highlight deltas based on the sign
     def highlight_delta(val):
-        try:
-            # Ensure the value is numeric before comparing
-            val = float(val)
-            if val > 0:
-                return 'color: green; font-weight: bold'
-            elif val < 0:
-                return 'color: lightcoral; font-weight: bold'
-            else:
-                return 'color: black'
-        except ValueError:
-            # If the value can't be converted to float, return default style
-            return 'color: black'
+        if val > 0:
+            return 'color: green'
+        elif val < 0:
+            return 'color: red'
+        return 'color: black'
 
-    st.markdown("### Sales Owner Comparison")
-    st.dataframe(df_table.style.applymap(highlight_delta, subset=["Delta (Committed)"]), use_container_width=True)
+    # Apply styling to the DataFrame
+    st.dataframe(df_table.style.applymap(highlight_delta, subset=["∆ Committed", "∆ Upside", "∆ Closed Won"]), use_container_width=True)
 
-# Streamlit Application
 def main():
-    st.title("Sales Dashboard")
-
+    # Page setup for file uploading and filtering
+    st.set_page_config(page_title="Sales Comparison Dashboard", layout="wide")
+    
     # File upload
-    uploaded_file = st.file_uploader("Upload Excel file", type=["xlsx"])
+    uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 
-    if uploaded_file is not None:
+    if uploaded_file:
         df_current, df_previous = load_data(uploaded_file)
         
-        # Add filters before the tables
+        # Add filters for status, quarter, and range
         status_options = ["All", "Committed for the Month", "Upside for the Month", "Closed Won"]
         selected_status = st.selectbox("Select Status", status_options)
         
-        quarter_options = ["All"] + sorted(df_current["Quarter"].dropna().unique().tolist())
-        selected_quarter = st.selectbox("Select Quarter", quarter_options)
-
-        range_options = ["All", "Strong Upside", "Moderate Upside", "Low Upside"]
-        selected_range = st.selectbox("Select Range (Probability)", range_options)
+        quarters = sorted(df_current["Quarter"].unique())
+        selected_quarter = st.selectbox("Select Quarter", ["All"] + quarters)
+        
+        range_options = ["All", "Strong Upside", "Medium Upside", "Low Upside"]
+        selected_range = st.selectbox("Select Probability Range", range_options)
 
         display_sales_cards(df_current, df_previous)
         display_sales_owner_table(df_current, df_previous, selected_status, selected_quarter, selected_range)
