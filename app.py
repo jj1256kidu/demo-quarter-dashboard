@@ -32,68 +32,11 @@ def display_metrics(df_current, df_previous, status, label):
     total_previous = df_previous_agg["Amount"].sum() / 1e5
     delta = total_current - total_previous
 
-    # Display the metrics for the selected status
-    return total_current, total_previous, delta
+    # Apply color coding for delta
+    delta_color = "green" if delta > 0 else "red" if delta < 0 else "black"
 
-# Function to display the table with Sales Owner and their data for each status (Committed, Upside, Closed Won, Overall Committed)
-def display_data(df_current, df_previous, status, label):
-    # Filter the data based on status
-    df_current_filtered = filter_status(df_current, status)
-    df_previous_filtered = filter_status(df_previous, status)
-
-    # Aggregate the data for current and previous week
-    df_current_agg = agg_amount(df_current_filtered).rename(columns={"Amount": "Current Week"})
-    df_previous_agg = agg_amount(df_previous_filtered).rename(columns={"Amount": "Previous Week"})
-
-    # Get all unique sales owners from both current and previous week data
-    all_sales_owners = sorted(set(df_current["Sales Owner"].unique()) | set(df_previous["Sales Owner"].unique()))
-
-    # Create a dataframe with all sales owners, even those with no data
-    all_sales_owners_df = pd.DataFrame({"Sales Owner": all_sales_owners})
-
-    # Merge the data for current and previous week, ensuring all sales owners are included
-    df = all_sales_owners_df.merge(df_current_agg, on="Sales Owner", how="left").merge(df_previous_agg, on="Sales Owner", how="left").fillna(0)
-
-    # Calculate delta
-    df["Delta"] = df["Current Week"] - df["Previous Week"]
-
-    # Divide by 10^5 and round the values to integers
-    df["Current Week"] = (df["Current Week"] / 1e5).round(0).astype(int)
-    df["Previous Week"] = (df["Previous Week"] / 1e5).round(0).astype(int)
-    df["Delta"] = (df["Delta"] / 1e5).round(0).astype(int)
-
-    # Apply custom CSS to reduce height and stretch the table, center-align, and remove width issues
-    st.markdown("""
-        <style>
-            .stDataFrame {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                margin-top: 20px;
-            }
-            .stTable {
-                border-collapse: collapse;
-                width: 100%;
-                height: auto;
-                margin: 0;
-                padding: 0;
-            }
-            .stTable th, .stTable td {
-                padding: 5px 12px;
-                text-align: center;
-                border: 1px solid #ddd;
-                font-size: 12px;
-                margin: 0;
-            }
-            .stTable th {
-                background-color: #f2f2f2;
-                font-size: 14px;
-            }
-        </style>
-    """, unsafe_allow_html=True)
-
-    # Display the table with Streamlit (centered)
-    st.dataframe(df.style.set_table_attributes('class="stTable"'), use_container_width=True)
+    # Return the total values and delta color
+    return total_current, total_previous, delta, delta_color
 
 # Streamlit app
 def main():
@@ -111,24 +54,27 @@ def main():
         df_current = preprocess(df_current)
         df_previous = preprocess(df_previous)
 
-        # Display KPIs for Committed, Upside, Closed Won, and Overall Committed
+        # Display KPIs with custom styles
         st.markdown("### 📝 Key Metrics (KPI)")
+        st.markdown("---")  # Horizontal line for separation
 
         # Committed Data Metrics
-        total_current_commit, total_previous_commit, delta_commit = display_metrics(df_current, df_previous, "Committed for the Month", "Committed Data")
-        st.markdown(f"**Committed Data**: ₹ {total_current_commit:,.0f} Lakh (Current Week), ₹ {total_previous_commit:,.0f} Lakh (Previous Week), Δ ₹ {delta_commit:,.0f} Lakh")
+        total_current_commit, total_previous_commit, delta_commit, delta_commit_color = display_metrics(df_current, df_previous, "Committed for the Month", "Committed Data")
+        st.markdown(f"**Committed Data**: <span style='font-size:20px; color: {delta_commit_color};'>₹ {total_current_commit:,.0f} Lakh</span> (Current Week), <span style='font-size:20px;'>₹ {total_previous_commit:,.0f} Lakh</span> (Previous Week), <span style='font-size:20px; color: {delta_commit_color};'>Δ ₹ {delta_commit:,.0f} Lakh</span>", unsafe_allow_html=True)
 
         # Upside Data Metrics
-        total_current_upside, total_previous_upside, delta_upside = display_metrics(df_current, df_previous, "Upside for the Month", "Upside Data")
-        st.markdown(f"**Upside Data**: ₹ {total_current_upside:,.0f} Lakh (Current Week), ₹ {total_previous_upside:,.0f} Lakh (Previous Week), Δ ₹ {delta_upside:,.0f} Lakh")
+        total_current_upside, total_previous_upside, delta_upside, delta_upside_color = display_metrics(df_current, df_previous, "Upside for the Month", "Upside Data")
+        st.markdown(f"**Upside Data**: <span style='font-size:20px; color: {delta_upside_color};'>₹ {total_current_upside:,.0f} Lakh</span> (Current Week), <span style='font-size:20px;'>₹ {total_previous_upside:,.0f} Lakh</span> (Previous Week), <span style='font-size:20px; color: {delta_upside_color};'>Δ ₹ {delta_upside:,.0f} Lakh</span>", unsafe_allow_html=True)
 
         # Closed Won Data Metrics
-        total_current_won, total_previous_won, delta_won = display_metrics(df_current, df_previous, "Closed Won", "Closed Won Data")
-        st.markdown(f"**Closed Won Data**: ₹ {total_current_won:,.0f} Lakh (Current Week), ₹ {total_previous_won:,.0f} Lakh (Previous Week), Δ ₹ {delta_won:,.0f} Lakh")
+        total_current_won, total_previous_won, delta_won, delta_won_color = display_metrics(df_current, df_previous, "Closed Won", "Closed Won Data")
+        st.markdown(f"**Closed Won Data**: <span style='font-size:20px; color: {delta_won_color};'>₹ {total_current_won:,.0f} Lakh</span> (Current Week), <span style='font-size:20px;'>₹ {total_previous_won:,.0f} Lakh</span> (Previous Week), <span style='font-size:20px; color: {delta_won_color};'>Δ ₹ {delta_won:,.0f} Lakh</span>", unsafe_allow_html=True)
 
         # Overall Committed Data Metrics (Committed + Closed Won)
-        total_current_overall, total_previous_overall, delta_overall = display_metrics(df_current, df_previous, "Committed for the Month", "Overall Committed Data (Committed + Closed Won)")
-        st.markdown(f"**Overall Committed Data**: ₹ {total_current_overall:,.0f} Lakh (Current Week), ₹ {total_previous_overall:,.0f} Lakh (Previous Week), Δ ₹ {delta_overall:,.0f} Lakh")
+        total_current_overall, total_previous_overall, delta_overall, delta_overall_color = display_metrics(df_current, df_previous, "Committed for the Month", "Overall Committed Data (Committed + Closed Won)")
+        st.markdown(f"**Overall Committed Data**: <span style='font-size:20px; color: {delta_overall_color};'>₹ {total_current_overall:,.0f} Lakh</span> (Current Week), <span style='font-size:20px;'>₹ {total_previous_overall:,.0f} Lakh</span> (Previous Week), <span style='font-size:20px; color: {delta_overall_color};'>Δ ₹ {delta_overall:,.0f} Lakh</span>", unsafe_allow_html=True)
+
+        st.markdown("---")  # Horizontal line for separation
 
         # Display the tables for Committed Data
         display_data(df_current, df_previous, "Committed for the Month", "Committed Data")
