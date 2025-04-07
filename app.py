@@ -105,6 +105,10 @@ def display_data_input():
         df_current = pd.read_excel(uploaded_file, sheet_name=selected_current_sheet)
         df_previous = pd.read_excel(uploaded_file, sheet_name=selected_previous_sheet)
 
+        # Store the data in session state
+        st.session_state.df_current = df_current
+        st.session_state.df_previous = df_previous
+
         # Display the first few rows of the selected sheets for preview
         st.write(f"Current Week Data from {selected_current_sheet}:")
         st.dataframe(df_current.head())
@@ -118,10 +122,13 @@ def display_data_input():
         return None, None
 
 # Function to display the dashboard with metrics
-def display_dashboard(df_current, df_previous):
-    if df_current is None or df_previous is None:
+def display_dashboard():
+    if 'df_current' not in st.session_state or 'df_previous' not in st.session_state:
         st.warning("Please upload the data first!")
         return
+
+    df_current = st.session_state.df_current
+    df_previous = st.session_state.df_previous
 
     st.title("Sales Dashboard")
 
@@ -158,12 +165,10 @@ def display_dashboard(df_current, df_previous):
 def main():
     page = st.sidebar.radio("Select Page", ["Data Input", "Dashboard"])
 
-    df_current = df_previous = None
     if page == "Data Input":
-        df_current, df_previous = display_data_input()
-
+        display_data_input()
     elif page == "Dashboard":
-        display_dashboard(df_current, df_previous)
+        display_dashboard()
 
 if __name__ == "__main__":
     main()
