@@ -65,10 +65,24 @@ def display_sales_cards(df_current, df_previous):
         st.metric(label="Total (Current Week)", value=f"₹ {overall_committed_current/1e5:.1f}L", delta=f"₹ {overall_committed_delta/1e5:.1f}L")
 
 # Function to generate the table view for Sales Owners and their data
-def display_sales_owner_table(df_current, df_previous):
+def display_sales_owner_table(df_current, df_previous, selected_status, selected_quarter, selected_range):
     # Clean Sales Owner columns to handle NaN and strip values
     df_current = clean_sales_owner_column(df_current)
     df_previous = clean_sales_owner_column(df_previous)
+
+    # Filter by Status and Quarter
+    if selected_quarter != "All":
+        df_current = df_current[df_current["Quarter"] == selected_quarter]
+        df_previous = df_previous[df_previous["Quarter"] == selected_quarter]
+
+    if selected_status != "All":
+        df_current = df_current[df_current["Status"] == selected_status]
+        df_previous = df_previous[df_previous["Status"] == selected_status]
+
+    # Filter by Range (For Strong Upside, apply a probability range)
+    if selected_range != "All":
+        df_current = df_current[df_current["Probability"] == selected_range]
+        df_previous = df_previous[df_previous["Probability"] == selected_range]
 
     # Extract sales owner names (after cleaning)
     sales_owners = sorted(set(df_current["Sales Owner"].unique()) | set(df_previous["Sales Owner"].unique()))
@@ -116,8 +130,19 @@ def main():
 
     if uploaded_file is not None:
         df_current, df_previous = load_data(uploaded_file)
+        
+        # Add filters before the tables
+        status_options = ["All", "Committed for the Month", "Upside for the Month", "Closed Won"]
+        selected_status = st.selectbox("Select Status", status_options)
+        
+        quarter_options = ["All"] + sorted(df_current["Quarter"].dropna().unique().tolist())
+        selected_quarter = st.selectbox("Select Quarter", quarter_options)
+
+        range_options = ["All", "Strong Upside", "Moderate Upside", "Low Upside"]
+        selected_range = st.selectbox("Select Range (Probability)", range_options)
+
         display_sales_cards(df_current, df_previous)
-        display_sales_owner_table(df_current, df_previous)
+        display_sales_owner_table(df_current, df_previous, selected_status, selected_quarter, selected_range)
 
 if __name__ == "__main__":
     main()
