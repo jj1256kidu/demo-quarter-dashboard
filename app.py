@@ -5,40 +5,29 @@ st.set_page_config(page_title="Quarter Summary Dashboard", layout="wide")
 st.title("📊 Quarter Summary Dashboard")
 
 # Upload Excel file
-uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
+uploaded_file = st.file_uploader("Upload Excel file with 'raw_data' and 'previousweek_raw_data' sheets", type=["xlsx"])
 
 if uploaded_file:
     try:
-        df = pd.read_excel(uploaded_file)
+        # Read both sheets
+        current_df = pd.read_excel(uploaded_file, sheet_name="raw_data")
+        previous_df = pd.read_excel(uploaded_file, sheet_name="previousweek_raw_data")
 
-        # Ensure required columns exist
         required_cols = {"Week", "Quarter", "Type", "Amount"}
-        if not required_cols.issubset(df.columns):
-            st.error(f"Your Excel file must contain the following columns: {', '.join(required_cols)}")
+
+        if not required_cols.issubset(current_df.columns) or not required_cols.issubset(previous_df.columns):
+            st.error(f"Sheets must contain the columns: {', '.join(required_cols)}")
             st.stop()
 
-        # Select quarter from sidebar
-        quarters = df['Quarter'].unique()
-        selected_quarter = st.sidebar.selectbox("Select Quarter", quarters)
+        # Show week info
+        current_week = current_df['Week'].iloc[0]
+        previous_week = previous_df['Week'].iloc[0]
 
-        # Filter data for selected quarter
-        df_qtr = df[df['Quarter'] == selected_quarter]
-
-        # Get latest and previous week
-        weeks = sorted(df_qtr['Week'].unique())
-        if len(weeks) < 2:
-            st.warning("Not enough data for delta comparison.")
-            st.stop()
-
-        current_week = weeks[-1]
-        previous_week = weeks[-2]
-
-        # Display selected weeks
         st.markdown(f"**Current Week:** {current_week} &nbsp;&nbsp;&nbsp;&nbsp; **Previous Week:** {previous_week}")
 
-        # Aggregate data
-        current_data = df_qtr[df_qtr['Week'] == current_week].groupby('Type')['Amount'].sum()
-        previous_data = df_qtr[df_qtr['Week'] == previous_week].groupby('Type')['Amount'].sum()
+        # Group by Type
+        current_data = current_df.groupby('Type')['Amount'].sum()
+        previous_data = previous_df.groupby('Type')['Amount'].sum()
         delta_data = current_data.subtract(previous_data, fill_value=0)
 
         # Display metrics
@@ -63,4 +52,4 @@ if uploaded_file:
     except Exception as e:
         st.error(f"An error occurred while processing the file: {e}")
 else:
-    st.info("📥 Please upload an Excel file with columns: Week, Quarter, Type, Amount")
+    st.info("📥 Please upload an Excel file with sheets: 'raw_data' and 'previousweek_raw_data'")
