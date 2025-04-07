@@ -44,7 +44,7 @@ def display_committed_for_month(df_current, df_previous):
     df["Previous Week"] = (df["Previous Week"] / 1e5).round(0).astype(int)
     df["Delta"] = (df["Delta"] / 1e5).round(0).astype(int)
 
-    # Apply custom CSS to remove gaps, center-align, and remove width issues
+    # Apply custom CSS to reduce height and stretch the table, center-align, and remove width issues
     st.markdown("""
         <style>
             .streamlit-expanderHeader {
@@ -60,14 +60,17 @@ def display_committed_for_month(df_current, df_previous):
             .stTable {
                 border-collapse: collapse;
                 width: 100%;
+                height: auto;
             }
             .stTable th, .stTable td {
-                padding: 10px;
+                padding: 6px 12px;
                 text-align: center;
                 border: 1px solid #ddd;
+                font-size: 12px;
             }
             .stTable th {
                 background-color: #f2f2f2;
+                font-size: 14px;
             }
         </style>
     """, unsafe_allow_html=True)
