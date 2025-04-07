@@ -118,37 +118,25 @@ elif page == "📊 Quarter Summary Dashboard":
     closed_table = add_total_row(closed_table)
     closed_table = add_serial_numbers(closed_table)
 
-    # After Closed Won, display Overall Committed + Closed Won comparison
-    overall_commit_closed_current = commit_table["Amount (Current Week)"] + closed_table["Amount (Current Week)"]
-    overall_commit_closed_previous = commit_table["Amount (Previous Week)"] + closed_table["Amount (Previous Week)"]
-    delta_commit_closed = overall_commit_closed_current - overall_commit_closed_previous
-
-    overall_commit_closed_table = pd.DataFrame({
-        "Sales Owner": commit_table["Sales Owner"],
-        "Overall Committed + Closed Won (Current Week)": overall_commit_closed_current,
-        "Overall Committed + Closed Won (Previous Week)": overall_commit_closed_previous,
-        "∆ Overall Committed + Closed Won": delta_commit_closed
-    })
-
-    overall_commit_closed_table = add_total_row(overall_commit_closed_table)
-    overall_commit_closed_table = add_serial_numbers(overall_commit_closed_table)
-
-    # Display the tables side by side with optimized layout
-    col1, col2, col3, col4 = st.columns([2, 2, 2, 3])  # Adjust column widths for better space utilization
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         st.markdown("### 📝 Commitment Comparison (in ₹ Lakhs)")
-        st.dataframe(commit_table.drop(columns=["S. No."]), use_container_width=True)
+        st.dataframe(commit_table, use_container_width=True)
 
     with col2:
         st.markdown("### 🔁 Upside Comparison (in ₹ Lakhs)")
-        st.dataframe(upside_table.drop(columns=["S. No."]), use_container_width=True)
+        st.dataframe(upside_table, use_container_width=True)
 
     with col3:
         st.markdown("### ✅ Closed Won Comparison (in ₹ Lakhs)")
-        st.dataframe(closed_table.drop(columns=["S. No."]), use_container_width=True)
+        st.dataframe(closed_table, use_container_width=True)
 
-    # After Closed Won, display Overall Committed + Closed Won in the next column
     with col4:
         st.markdown("### 📊 Overall Committed + Closed Won (in ₹ Lakhs)")
-        st.dataframe(overall_commit_closed_table.drop(columns=["S. No."]), use_container_width=True)
+        overall_table = commit_table.copy()
+        overall_table["Overall Committed + Closed Won (Current Week)"] = overall_table["Amount (Current Week)"] + closed_table["Amount (Current Week)"]
+        overall_table["Overall Committed + Closed Won (Previous Week)"] = overall_table["Amount (Previous Week)"] + closed_table["Amount (Previous Week)"]
+        overall_table["∆ Overall Committed + Closed Won"] = overall_table["Overall Committed + Closed Won (Current Week)"] - overall_table["Overall Committed + Closed Won (Previous Week)"]
+        st.dataframe(overall_table, use_container_width=True)
+
