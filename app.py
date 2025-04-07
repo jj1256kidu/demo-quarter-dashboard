@@ -98,6 +98,11 @@ try:
         upside_table = prepare_table(df_upside_current, df_upside_previous, "Upside")
         closed_table = prepare_table(df_closed_current, df_closed_previous, "Closed Won")
 
+        # Concatenate Commit and Closed Won for overall table
+        overall_table = pd.concat([df_commit_current, df_closed_current], ignore_index=True)
+        overall_table_previous = pd.concat([df_commit_previous, df_closed_previous], ignore_index=True)
+        overall_table = prepare_table(overall_table, overall_table_previous, "Committed + Closed Won")
+
         # Create columns for layout
         col1, col2, col3, col4 = st.columns(4)
 
@@ -117,9 +122,6 @@ try:
             st.dataframe(closed_table, use_container_width=True)
 
         # Display Overall Committed + Closed Won Table
-        overall_table = prepare_table(df_commit_current.append(df_closed_current, ignore_index=True),
-                                      df_commit_previous.append(df_closed_previous, ignore_index=True),
-                                      "Committed + Closed Won")
         with col4:
             st.markdown("### 📊 Overall Committed + Closed Won (in ₹ Lakhs)")
             st.dataframe(overall_table, use_container_width=True)
