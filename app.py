@@ -75,7 +75,13 @@ def main():
 
         # Quarter filter (including "All" option to show all quarters)
         quarters = ["All"] + sorted(df_current["Quarter"].unique().tolist())
-        selected_quarter = st.selectbox("Select Quarter", quarters)
+
+        # Use st.columns to place filters in the same row
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            selected_status = st.selectbox("Select Status", status_options)
+        with col2:
+            selected_quarter = st.selectbox("Select Quarter", quarters)
 
         # Display the sales owner comparison table
         display_sales_owner_table(df_current, df_previous, selected_status, selected_quarter)
