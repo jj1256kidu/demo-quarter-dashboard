@@ -23,6 +23,11 @@ def clean_sales_owner_column(df):
     df['Sales Owner'] = df['Sales Owner'].fillna('Unknown')
     return df
 
+# Ensure Amount is numeric
+def convert_to_numeric(df):
+    df['Amount'] = pd.to_numeric(df['Amount'], errors='coerce').fillna(0)
+    return df
+
 # Function to render the sales cards
 def display_sales_cards(df_current, df_previous):
     # Committed Data
@@ -69,6 +74,10 @@ def display_sales_owner_table(df_current, df_previous, selected_status, selected
     # Clean Sales Owner columns to handle NaN and strip values
     df_current = clean_sales_owner_column(df_current)
     df_previous = clean_sales_owner_column(df_previous)
+
+    # Ensure 'Amount' column is numeric
+    df_current = convert_to_numeric(df_current)
+    df_previous = convert_to_numeric(df_previous)
 
     # Filter by Status and Quarter
     if selected_quarter != "All":
