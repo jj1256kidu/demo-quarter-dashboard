@@ -49,7 +49,9 @@ if uploaded_file:
         }).fillna(0)
 
         commitment_df["Delta (Committed)"] = commitment_df["Overall Committed (Current Week)"] - commitment_df["Overall Committed (Previous Week)"]
-        commitment_df = commitment_df.reset_index().astype(int)
+        commitment_df = commitment_df.reset_index()
+        for col in commitment_df.columns[1:]:
+            commitment_df[col] = commitment_df[col].astype(int)
 
         # ---- UPSIDE ----
         upside_current = current_week_df[current_week_df["Status"] == "Upside for the Month"]
@@ -64,7 +66,9 @@ if uploaded_file:
         }).fillna(0)
 
         upside_df["Delta (Upside)"] = upside_df["Overall Upside (Current Week)"] - upside_df["Overall Upside (Previous Week)"]
-        upside_df = upside_df.reset_index().astype(int)
+        upside_df = upside_df.reset_index()
+        for col in upside_df.columns[1:]:
+            upside_df[col] = upside_df[col].astype(int)
 
         # ---- DISPLAY ----
         col1, col2 = st.columns(2)
