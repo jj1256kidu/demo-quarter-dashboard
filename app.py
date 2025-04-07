@@ -16,24 +16,21 @@ def highlight_deltas(val):
 
 if uploaded_file:
     try:
-        # Get available sheets
+        # Sheet selection
         sheet_names = pd.ExcelFile(uploaded_file, engine='openpyxl').sheet_names
-
         col1, col2 = st.columns(2)
         with col1:
             current_sheet = st.selectbox("📅 Select CURRENT week sheet", sheet_names)
         with col2:
             previous_sheet = st.selectbox("📅 Select PREVIOUS week sheet", sheet_names)
 
-        # Read sheets
+        # Load sheets
         current_df = pd.read_excel(uploaded_file, sheet_name=current_sheet, engine="openpyxl")
         previous_df = pd.read_excel(uploaded_file, sheet_name=previous_sheet, engine="openpyxl")
 
-        # Clean headers
         current_df.columns = current_df.columns.str.strip()
         previous_df.columns = previous_df.columns.str.strip()
 
-        # Rename to standard
         rename_map = {
             "Sales Owner (Q1)": "Sales Owner",
             "Function Overview Q1": "Practice"
@@ -41,7 +38,6 @@ if uploaded_file:
         current_df = current_df.rename(columns=rename_map)
         previous_df = previous_df.rename(columns=rename_map)
 
-        # Validate columns
         expected_cols = {"Status", "Amount", "Quarter", "Sales Owner", "Practice"}
         if not expected_cols.issubset(set(current_df.columns)) or not expected_cols.issubset(set(previous_df.columns)):
             missing_current = expected_cols.difference(set(current_df.columns))
@@ -49,7 +45,7 @@ if uploaded_file:
             st.error(f"❌ Missing columns:\n- Current Sheet: {', '.join(missing_current)}\n- Previous Sheet: {', '.join(missing_previous)}")
             st.stop()
 
-        # Filter status
+        # Filter Committed & Upside
         committed_type = "Committed for the month"
         upside_type = "Upside for the month"
 
@@ -59,7 +55,7 @@ if uploaded_file:
         current_upside_df = current_df[current_df['Status'].str.strip() == upside_type]
         previous_upside_df = previous_df[previous_df['Status'].str.strip() == upside_type]
 
-        # Metrics
+        # Totals
         current_committed = current_committed_df['Amount'].sum()
         previous_committed = previous_committed_df['Amount'].sum()
         delta_committed = current_committed - previous_committed
@@ -68,7 +64,7 @@ if uploaded_file:
         previous_upside = previous_upside_df['Amount'].sum()
         delta_upside = current_upside - previous_upside
 
-        # Top-level metrics
+        # Top-level Metrics
         st.markdown("### 📈 Commitment Overview")
         mcol1, mcol2 = st.columns(2)
         with mcol1:
@@ -79,7 +75,7 @@ if uploaded_file:
             st.metric("Current Total", f"₹{current_upside:,.0f}", f"₹{delta_upside:,.0f}")
 
         # --- SALES OWNER SUMMARY ---
-        st.markdown("### 👤 Sales Owner Commitment Summary")
+        st.markdown("#### 🧾 Q1 SUMMARY – Sales Owner")
         current_committed_df['Sales Owner'] = current_committed_df['Sales Owner'].fillna("Unknown")
         previous_committed_df['Sales Owner'] = previous_committed_df['Sales Owner'].fillna("Unknown")
 
@@ -92,25 +88,29 @@ if uploaded_file:
             'Amount_Current Week': 'Overall Committed (Current Week)',
             'Amount_Previous Week': 'Overall Committed (Previous Week)'
         })
-        sales_total = pd.DataFrame({
+
+        total_row = pd.DataFrame({
             'Sales Owner': ['Total'],
             'Overall Committed (Current Week)': [merged['Overall Committed (Current Week)'].sum()],
             'Overall Committed (Previous Week)': [merged['Overall Committed (Previous Week)'].sum()],
             'Delta': [merged['Delta'].sum()]
         })
-        sales_final = pd.concat([merged, sales_total], ignore_index=True)
 
-        st.dataframe(sales_final.style
+        sales_final = pd.concat([merged, total_row], ignore_index=True)
+
+        sales_styled = sales_final.style \
             .format({
                 'Overall Committed (Current Week)': '₹{:,.0f}',
                 'Overall Committed (Previous Week)': '₹{:,.0f}',
                 'Delta': '₹{:,.0f}'
-            })
-            .map({'Delta': highlight_deltas})
-        )
+            }) \
+            .map({'Delta': highlight_deltas}) \
+            .apply(lambda df: ['background-color: yellow; font-weight: bold;' if i == len(df)-1 else '' for i in range(len(df))], axis=0)
 
-        # --- FUNCTION / PRACTICE SUMMARY ---
-        st.markdown("### 🧩 Function Overview Commitment Summary")
+        st.dataframe(sales_styled)
+
+        # --- FUNCTION (PRACTICE) SUMMARY ---
+        st.markdown("#### 🧾 Q1 SUMMARY – Function Overview")
         current_committed_df['Practice'] = current_committed_df['Practice'].fillna("Unknown")
         previous_committed_df['Practice'] = previous_committed_df['Practice'].fillna("Unknown")
 
@@ -123,24 +123,28 @@ if uploaded_file:
             'Amount_Current Week': 'Overall Committed (Current Week)',
             'Amount_Previous Week': 'Overall Committed (Previous Week)'
         })
+
         func_total = pd.DataFrame({
             'Practice': ['Total'],
             'Overall Committed (Current Week)': [func_merged['Overall Committed (Current Week)'].sum()],
             'Overall Committed (Previous Week)': [func_merged['Overall Committed (Previous Week)'].sum()],
             'Delta': [func_merged['Delta'].sum()]
         })
+
         func_final = pd.concat([func_merged, func_total], ignore_index=True)
 
-        st.dataframe(func_final.style
+        func_styled = func_final.style \
             .format({
                 'Overall Committed (Current Week)': '₹{:,.0f}',
                 'Overall Committed (Previous Week)': '₹{:,.0f}',
                 'Delta': '₹{:,.0f}'
-            })
-            .map({'Delta': highlight_deltas})
-        )
+            }) \
+            .map({'Delta': highlight_deltas}) \
+            .apply(lambda df: ['background-color: yellow; font-weight: bold;' if i == len(df)-1 else '' for i in range(len(df))], axis=0)
 
-        # --- EXPORT TO EXCEL ---
+        st.dataframe(func_styled)
+
+        # --- DOWNLOAD EXCEL ---
         st.markdown("### 📥 Download Summary Report")
 
         def to_excel(sales_df, func_df):
@@ -163,4 +167,4 @@ if uploaded_file:
     except Exception as e:
         st.error(f"❌ Error while processing the file: {e}")
 else:
-    st.info("📥 Please upload an Excel file with required columns and choose your sheets.")
+    st.info("📥 Please upload an Excel file with required columns and select the sheets.")
