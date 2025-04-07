@@ -80,13 +80,16 @@ try:
         def agg_amount(df):
             return df.groupby("Sales Owner")["Amount"].sum().reset_index()
 
+        # Create a DataFrame with all sales owners to ensure all appear in the final tables
+        all_sales_owners = sorted(set(df_current["Sales Owner"].unique()) | set(df_previous["Sales Owner"].unique()) - {"nan", "None", ""})
+        all_owners_df = pd.DataFrame({"Sales Owner": all_sales_owners})
+
         def prepare_table(cur, prev, value_name):
             cur = agg_amount(cur).rename(columns={"Amount": f"Amount (Current Week)"})
             prev = agg_amount(prev).rename(columns={"Amount": f"Amount (Previous Week)"})
-            df = pd.merge(cur, prev, on="Sales Owner", how="left").fillna(0)
+            df = pd.merge(all_owners_df, cur, on="Sales Owner", how="left").merge(prev, on="Sales Owner", how="left").fillna(0)
             df[f"∆ {value_name}"] = df[f"Amount (Current Week)"] - df[f"Amount (Previous Week)"]
             df = df[["Sales Owner", f"Amount (Current Week)", f"Amount (Previous Week)", f"∆ {value_name}"]]  # Remove S. No.
-            df = df.drop(columns=["Sales Owner"])  # Remove the Sales Owner column for compact view
             df = df.round(0)
             return df
 
