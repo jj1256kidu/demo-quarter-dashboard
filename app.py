@@ -113,6 +113,12 @@ try:
         closed_table = remove_nan_sales_owner(closed_table)
         overall_table = remove_nan_sales_owner(overall_table)
 
+        # Remove Sales Owner column from view (keep it in data)
+        commit_table = commit_table.drop(columns=["Sales Owner"])
+        upside_table = upside_table.drop(columns=["Sales Owner"])
+        closed_table = closed_table.drop(columns=["Sales Owner"])
+        overall_table = overall_table.drop(columns=["Sales Owner"])
+
         # Create columns for layout
         col1, col2, col3, col4 = st.columns(4)
 
