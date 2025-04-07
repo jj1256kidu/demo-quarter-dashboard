@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from io import BytesIO
 
 st.set_page_config(page_title="Quarter Summary Dashboard", layout="wide")
 st.title("📊 Quarter Summary Dashboard")
@@ -8,35 +9,39 @@ uploaded_file = st.file_uploader("📤 Upload Excel file", type=["xlsx"])
 
 required_cols = {"Status", "Amount", "Quarter", "Sales Owner (Q1)", "Function Overview Q1"}
 
+def highlight_deltas(val):
+    if isinstance(val, (int, float)) and val < 0:
+        return 'color: red; font-weight: bold;'
+    return ''
+
 if uploaded_file:
     try:
-        # Load sheet names
+        # Get available sheets
         sheet_names = pd.ExcelFile(uploaded_file, engine='openpyxl').sheet_names
 
-        # Sheet selectors
         col1, col2 = st.columns(2)
         with col1:
             current_sheet = st.selectbox("📅 Select CURRENT week sheet", sheet_names)
         with col2:
             previous_sheet = st.selectbox("📅 Select PREVIOUS week sheet", sheet_names)
 
-        # Load selected sheets
+        # Read sheets
         current_df = pd.read_excel(uploaded_file, sheet_name=current_sheet, engine="openpyxl")
         previous_df = pd.read_excel(uploaded_file, sheet_name=previous_sheet, engine="openpyxl")
 
-        # Clean column names
+        # Clean headers
         current_df.columns = current_df.columns.str.strip()
         previous_df.columns = previous_df.columns.str.strip()
 
-        # Rename columns to expected internal names
-        column_mapping = {
+        # Rename to standard
+        rename_map = {
             "Sales Owner (Q1)": "Sales Owner",
             "Function Overview Q1": "Practice"
         }
-        current_df = current_df.rename(columns=column_mapping)
-        previous_df = previous_df.rename(columns=column_mapping)
+        current_df = current_df.rename(columns=rename_map)
+        previous_df = previous_df.rename(columns=rename_map)
 
-        # Validate columns after rename
+        # Validate columns
         expected_cols = {"Status", "Amount", "Quarter", "Sales Owner", "Practice"}
         if not expected_cols.issubset(set(current_df.columns)) or not expected_cols.issubset(set(previous_df.columns)):
             missing_current = expected_cols.difference(set(current_df.columns))
@@ -44,11 +49,10 @@ if uploaded_file:
             st.error(f"❌ Missing columns:\n- Current Sheet: {', '.join(missing_current)}\n- Previous Sheet: {', '.join(missing_previous)}")
             st.stop()
 
-        # Define types
+        # Filter status
         committed_type = "Committed for the month"
         upside_type = "Upside for the month"
 
-        # Filter by status
         current_committed_df = current_df[current_df['Status'].str.strip() == committed_type]
         previous_committed_df = previous_df[previous_df['Status'].str.strip() == committed_type]
 
@@ -64,7 +68,7 @@ if uploaded_file:
         previous_upside = previous_upside_df['Amount'].sum()
         delta_upside = current_upside - previous_upside
 
-        # Display Top-Level Metrics
+        # Top-level metrics
         st.markdown("### 📈 Commitment Overview")
         mcol1, mcol2 = st.columns(2)
         with mcol1:
@@ -74,88 +78,89 @@ if uploaded_file:
             st.subheader("🔄 Upside for the Month")
             st.metric("Current Total", f"₹{current_upside:,.0f}", f"₹{delta_upside:,.0f}")
 
-        # ------------------------
-        # Sales Owner Summary
-        # ------------------------
+        # --- SALES OWNER SUMMARY ---
         st.markdown("### 👤 Sales Owner Commitment Summary")
-
         current_committed_df['Sales Owner'] = current_committed_df['Sales Owner'].fillna("Unknown")
         previous_committed_df['Sales Owner'] = previous_committed_df['Sales Owner'].fillna("Unknown")
 
         current_grouped = current_committed_df.groupby('Sales Owner')['Amount'].sum().reset_index()
         previous_grouped = previous_committed_df.groupby('Sales Owner')['Amount'].sum().reset_index()
 
-        merged = pd.merge(
-            current_grouped, previous_grouped,
-            on='Sales Owner', how='outer',
-            suffixes=('_Current Week', '_Previous Week')
-        ).fillna(0)
-
+        merged = pd.merge(current_grouped, previous_grouped, on='Sales Owner', how='outer', suffixes=('_Current Week', '_Previous Week')).fillna(0)
         merged['Delta'] = merged['Amount_Current Week'] - merged['Amount_Previous Week']
         merged = merged.rename(columns={
             'Amount_Current Week': 'Overall Committed (Current Week)',
             'Amount_Previous Week': 'Overall Committed (Previous Week)'
         })
-
-        total_row = pd.DataFrame({
+        sales_total = pd.DataFrame({
             'Sales Owner': ['Total'],
             'Overall Committed (Current Week)': [merged['Overall Committed (Current Week)'].sum()],
             'Overall Committed (Previous Week)': [merged['Overall Committed (Previous Week)'].sum()],
             'Delta': [merged['Delta'].sum()]
         })
+        sales_final = pd.concat([merged, sales_total], ignore_index=True)
 
-        final_summary = pd.concat([merged, total_row], ignore_index=True)
+        st.dataframe(sales_final.style
+            .format({
+                'Overall Committed (Current Week)': '₹{:,.0f}',
+                'Overall Committed (Previous Week)': '₹{:,.0f}',
+                'Delta': '₹{:,.0f}'
+            })
+            .map({'Delta': highlight_deltas})
+        )
 
-        def highlight_deltas(val):
-            if isinstance(val, (int, float)) and val < 0:
-                return 'color: red; font-weight: bold;'
-            return ''
-
-        st.dataframe(final_summary.style.format({
-            'Overall Committed (Current Week)': '₹{:,.0f}',
-            'Overall Committed (Previous Week)': '₹{:,.0f}',
-            'Delta': '₹{:,.0f}'
-        }).applymap(highlight_deltas, subset=['Delta']))
-
-        # -----------------------------
-        # Practice (Function Overview Q1) Summary
-        # -----------------------------
+        # --- FUNCTION / PRACTICE SUMMARY ---
         st.markdown("### 🧩 Function Overview Commitment Summary")
-
         current_committed_df['Practice'] = current_committed_df['Practice'].fillna("Unknown")
         previous_committed_df['Practice'] = previous_committed_df['Practice'].fillna("Unknown")
 
-        current_func_grouped = current_committed_df.groupby('Practice')['Amount'].sum().reset_index()
-        previous_func_grouped = previous_committed_df.groupby('Practice')['Amount'].sum().reset_index()
+        current_func = current_committed_df.groupby('Practice')['Amount'].sum().reset_index()
+        previous_func = previous_committed_df.groupby('Practice')['Amount'].sum().reset_index()
 
-        func_merged = pd.merge(
-            current_func_grouped, previous_func_grouped,
-            on='Practice', how='outer',
-            suffixes=('_Current Week', '_Previous Week')
-        ).fillna(0)
-
+        func_merged = pd.merge(current_func, previous_func, on='Practice', how='outer', suffixes=('_Current Week', '_Previous Week')).fillna(0)
         func_merged['Delta'] = func_merged['Amount_Current Week'] - func_merged['Amount_Previous Week']
         func_merged = func_merged.rename(columns={
             'Amount_Current Week': 'Overall Committed (Current Week)',
             'Amount_Previous Week': 'Overall Committed (Previous Week)'
         })
-
-        func_total_row = pd.DataFrame({
+        func_total = pd.DataFrame({
             'Practice': ['Total'],
             'Overall Committed (Current Week)': [func_merged['Overall Committed (Current Week)'].sum()],
             'Overall Committed (Previous Week)': [func_merged['Overall Committed (Previous Week)'].sum()],
             'Delta': [func_merged['Delta'].sum()]
         })
+        func_final = pd.concat([func_merged, func_total], ignore_index=True)
 
-        func_final = pd.concat([func_merged, func_total_row], ignore_index=True)
+        st.dataframe(func_final.style
+            .format({
+                'Overall Committed (Current Week)': '₹{:,.0f}',
+                'Overall Committed (Previous Week)': '₹{:,.0f}',
+                'Delta': '₹{:,.0f}'
+            })
+            .map({'Delta': highlight_deltas})
+        )
 
-        st.dataframe(func_final.style.format({
-            'Overall Committed (Current Week)': '₹{:,.0f}',
-            'Overall Committed (Previous Week)': '₹{:,.0f}',
-            'Delta': '₹{:,.0f}'
-        }).applymap(highlight_deltas, subset=['Delta']))
+        # --- EXPORT TO EXCEL ---
+        st.markdown("### 📥 Download Summary Report")
+
+        def to_excel(sales_df, func_df):
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                sales_df.to_excel(writer, index=False, sheet_name='Sales Summary')
+                func_df.to_excel(writer, index=False, sheet_name='Function Summary')
+            output.seek(0)
+            return output
+
+        excel_data = to_excel(sales_final, func_final)
+
+        st.download_button(
+            label="📤 Download Excel Report",
+            data=excel_data,
+            file_name="Quarter_Summary_Report.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
     except Exception as e:
         st.error(f"❌ Error while processing the file: {e}")
 else:
-    st.info("📥 Please upload an Excel file with the required columns and select the sheets to compare.")
+    st.info("📥 Please upload an Excel file with required columns and choose your sheets.")
