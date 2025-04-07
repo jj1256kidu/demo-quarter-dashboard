@@ -71,79 +71,25 @@ try:
 
         df_commit_current = filter_data(df_current, "Committed for the Month")
         df_commit_previous = filter_data(df_previous, "Committed for the Month")
-        df_upside_current = filter_data(df_current, "Upside for the Month")
-        df_upside_previous = filter_data(df_previous, "Upside for the Month")
-        df_closed_current = filter_data(df_current, "Closed Won")
-        df_closed_previous = filter_data(df_previous, "Closed Won")
 
         # Aggregation
         def agg_amount(df):
             return df.groupby("Sales Owner")["Amount"].sum().reset_index()
 
-        unique_owners = sorted((set(df_current["Sales Owner"].unique()) | set(df_previous["Sales Owner"].unique())) - {"nan", "None", ""})
-        all_owners_df = pd.DataFrame({"Sales Owner": unique_owners})
-
-        def prepare_table(cur, prev, value_name):
-            cur = agg_amount(cur).rename(columns={"Amount": f"Amount (Current Week)"})
-            prev = agg_amount(prev).rename(columns={"Amount": f"Amount (Previous Week)"})
-            df = all_owners_df.merge(cur, on="Sales Owner", how="left").merge(prev, on="Sales Owner", how="left").fillna(0)
-            df[f"∆ {value_name}"] = df[f"Amount (Current Week)"] - df[f"Amount (Previous Week)"]
-            df = df.round(0)
+        # Prepare the table
+        def prepare_commitment_table(cur, prev):
+            cur = agg_amount(cur).rename(columns={"Amount": "Amount (Current Week)"})
+            prev = agg_amount(prev).rename(columns={"Amount": "Amount (Previous Week)"})
+            df = pd.merge(cur, prev, on="Sales Owner", how="left").fillna(0)
+            df["∆ Committed"] = df["Amount (Current Week)"] - df["Amount (Previous Week)"]
+            df = df[["Sales Owner", "Amount (Current Week)", "Amount (Previous Week)", "∆ Committed"]]  # Show only required columns
             return df
 
-        def add_total_row(df, label="\U0001F4C8 Total"):
-            total = df.drop(columns=["S. No."], errors="ignore").sum(numeric_only=True)
-            total_row = pd.DataFrame([[label] + total.tolist()], columns=["Sales Owner"] + list(total.index))
-            df = pd.concat([df, total_row], ignore_index=True)
-            return df
+        commit_table = prepare_commitment_table(df_commit_current, df_commit_previous)
 
-        def add_serial_numbers(df):
-            df.insert(0, "S. No.", range(1, len(df)+1))
-            df.loc[df["Sales Owner"] == "\U0001F4C8 Total", "S. No."] = ""
-            return df
-
-        # Prepare tables for Commitment, Upside, and Closed Won
-        commit_table = prepare_table(df_commit_current, df_commit_previous, "Committed")
-        upside_table = prepare_table(df_upside_current, df_upside_previous, "Upside")
-        closed_table = prepare_table(df_closed_current, df_closed_previous, "Closed Won")
-
-        # Remove Sales Owner column from all tables
-        for table in [commit_table, upside_table, closed_table]:
-            table.drop(columns=["Sales Owner"], inplace=True)
-
-        for table in [commit_table, upside_table, closed_table]:
-            for col in table.columns[1:]:
-                table[col] = (table[col] / 1e5).astype(int)
-            table = add_total_row(table)
-            table = add_serial_numbers(table)
-
-        # Create a sales owner table
-        sales_owner_table = pd.DataFrame({"Sales Owner": unique_owners})
-        sales_owner_table["Overall Commitment + Closed Won (Current Week)"] = sales_owner_table["Sales Owner"].map(lambda x: df_commit_current[df_commit_current["Sales Owner"] == x]["Amount"].sum() + df_closed_current[df_closed_current["Sales Owner"] == x]["Amount"].sum())
-        sales_owner_table["Overall Commitment + Closed Won (Previous Week)"] = sales_owner_table["Sales Owner"].map(lambda x: df_commit_previous[df_commit_previous["Sales Owner"] == x]["Amount"].sum() + df_closed_previous[df_closed_previous["Sales Owner"] == x]["Amount"].sum())
-        sales_owner_table["∆ Overall Commitment + Closed Won"] = sales_owner_table["Overall Commitment + Closed Won (Current Week)"] - sales_owner_table["Overall Commitment + Closed Won (Previous Week)"]
-
-        sales_owner_table = add_total_row(sales_owner_table)
-        sales_owner_table = add_serial_numbers(sales_owner_table)
-
-        # Display tables in the dashboard
-        col1, col2, col3, col4 = st.columns([2, 2, 2, 2])
-
-        with col1:
-            st.markdown("### 📝 Commitment Comparison (in ₹ Lakhs)")
-            st.dataframe(commit_table, use_container_width=True)
-
-        with col2:
-            st.markdown("### 🔁 Upside Comparison (in ₹ Lakhs)")
-            st.dataframe(upside_table, use_container_width=True)
-
-        with col3:
-            st.markdown("### ✅ Closed Won Comparison (in ₹ Lakhs)")
-            st.dataframe(closed_table, use_container_width=True)
-
-        with col4:
-            st.markdown("### 📊 Overall Committed + Closed Won (in ₹ Lakhs)")
-            st.dataframe(sales_owner_table, use_container_width=True)
+        # Display commitment table
+        st.markdown("### 📊 Commitment Comparison (in ₹ Lakhs)")
+        st.dataframe(commit_table, use_container_width=True)
 
 except ModuleNotFoundError as e:
     print("Required module not found:", e)
