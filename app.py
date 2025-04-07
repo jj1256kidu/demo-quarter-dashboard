@@ -16,9 +16,12 @@ if uploaded_file is not None:
     sheet_names = xls.sheet_names
     st.sidebar.write(f"Sheets available: {sheet_names}")
     
-    # Select Sheet
-    selected_sheet = st.sidebar.selectbox("Select Sheet", sheet_names)
-    df = pd.read_excel(xls, sheet_name=selected_sheet)
+    # Select Sheets for current and previous week data
+    selected_current_sheet = st.sidebar.selectbox("Select Current Week Sheet", sheet_names)
+    selected_previous_sheet = st.sidebar.selectbox("Select Previous Week Sheet", sheet_names)
+    
+    df_current = pd.read_excel(xls, sheet_name=selected_current_sheet)
+    df_previous = pd.read_excel(xls, sheet_name=selected_previous_sheet)
 
     # Preprocess the data
     def preprocess(df):
@@ -27,18 +30,21 @@ if uploaded_file is not None:
         df["Amount"] = pd.to_numeric(df["Amount"], errors="coerce").fillna(0)
         return df
 
-    df = preprocess(df)
+    df_current = preprocess(df_current)
+    df_previous = preprocess(df_previous)
 
     # Filter options for Sales Owner and Quarter
-    sales_owner_filter = st.sidebar.selectbox('Select Sales Owner', ['All'] + df['Sales Owner'].unique().tolist())
-    quarters = ['All'] + df['Quarter'].unique().tolist()
+    sales_owner_filter = st.sidebar.selectbox('Select Sales Owner', ['All'] + df_current['Sales Owner'].unique().tolist())
+    quarters = ['All'] + df_current['Quarter'].unique().tolist()
     quarter_filter = st.sidebar.selectbox('Select Quarter', quarters)
 
     # Filter data based on selections
     if sales_owner_filter != "All":
-        df = df[df['Sales Owner'] == sales_owner_filter]
+        df_current = df_current[df_current['Sales Owner'] == sales_owner_filter]
+        df_previous = df_previous[df_previous['Sales Owner'] == sales_owner_filter]
     if quarter_filter != "All":
-        df = df[df['Quarter'] == quarter_filter]
+        df_current = df_current[df_current['Quarter'] == quarter_filter]
+        df_previous = df_previous[df_previous['Quarter'] == quarter_filter]
 
     # Header of the Dashboard
     st.title("📊 Quarter Summary Dashboard")
@@ -49,32 +55,39 @@ if uploaded_file is not None:
     # Display different data depending on the selected tab
     if tab == "Commitment":
         st.markdown("### 📝 Commitment Comparison (in ₹ Lakhs)")
-        st.dataframe(df[['Sales Owner', 'Amount (Current Week)', 'Amount (Previous Week)', 'Delta']])
+        df_commit_current = df_current[df_current['Status'] == 'Committed for the Month']
+        df_commit_previous = df_previous[df_previous['Status'] == 'Committed for the Month']
+        st.dataframe(df_commit_current[['Sales Owner', 'Amount']], use_container_width=True)
+        st.dataframe(df_commit_previous[['Sales Owner', 'Amount']], use_container_width=True)
 
     elif tab == "Upside":
         st.markdown("### 🔁 Upside Comparison (in ₹ Lakhs)")
-        st.dataframe(df[['Sales Owner', 'Amount (Current Week)', 'Amount (Previous Week)', 'Delta']])
+        df_upside_current = df_current[df_current['Status'] == 'Upside for the Month']
+        df_upside_previous = df_previous[df_previous['Status'] == 'Upside for the Month']
+        st.dataframe(df_upside_current[['Sales Owner', 'Amount']], use_container_width=True)
+        st.dataframe(df_upside_previous[['Sales Owner', 'Amount']], use_container_width=True)
 
     elif tab == "Closed Won":
         st.markdown("### ✅ Closed Won Comparison (in ₹ Lakhs)")
-        st.dataframe(df[['Sales Owner', 'Amount (Current Week)', 'Amount (Previous Week)', 'Delta']])
+        df_closed_current = df_current[df_current['Status'] == 'Closed Won']
+        df_closed_previous = df_previous[df_previous['Status'] == 'Closed Won']
+        st.dataframe(df_closed_current[['Sales Owner', 'Amount']], use_container_width=True)
+        st.dataframe(df_closed_previous[['Sales Owner', 'Amount']], use_container_width=True)
 
     elif tab == "Overall":
         st.markdown("### 📈 Overall Committed + Closed Won Comparison (in ₹ Lakhs)")
-        # Calculate the overall (current week + previous week)
-        df['Overall (Current Week)'] = df['Amount (Current Week)'] + df['Amount (Previous Week)']
-        df['Overall (Previous Week)'] = df['Amount (Previous Week)'] + df['Amount (Current Week)']
-        df['Overall Delta'] = df['Overall (Current Week)'] - df['Overall (Previous Week)']
-        st.dataframe(df[['Sales Owner', 'Overall (Current Week)', 'Overall (Previous Week)', 'Overall Delta']])
+        df_current['Overall (Current Week)'] = df_current['Amount'] + df_current['Amount']
+        df_previous['Overall (Previous Week)'] = df_previous['Amount'] + df_previous['Amount']
+        st.dataframe(df_current[['Sales Owner', 'Overall (Current Week)']], use_container_width=True)
+        st.dataframe(df_previous[['Sales Owner', 'Overall (Previous Week)']], use_container_width=True)
 
     # Add a summary section below the tables
     st.markdown("### 🔥 Summary Metrics")
 
-    total_commit_current_week = df['Amount (Current Week)'].sum()
-    total_commit_previous_week = df['Amount (Previous Week)'].sum()
+    total_commit_current_week = df_current['Amount'].sum()
+    total_commit_previous_week = df_previous['Amount'].sum()
     total_delta = total_commit_current_week - total_commit_previous_week
 
     st.markdown(f"**Total Commitment (Current Week):** ₹ {total_commit_current_week}")
     st.markdown(f"**Total Commitment (Previous Week):** ₹ {total_commit_previous_week}")
     st.markdown(f"**Total Delta:** ₹ {total_delta}")
-
