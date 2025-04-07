@@ -1,80 +1,72 @@
 import streamlit as st
 import pandas as pd
 
-# Set Streamlit page configuration
-st.set_page_config(layout="wide", page_title="Weekly Commitment Dashboard")
-
-# Sidebar filters for Sales Owner and Quarter
-st.sidebar.title("Filters")
-
-# File Upload
-uploaded_file = st.sidebar.file_uploader("Upload Excel file", type=["xlsx"])
-
-if uploaded_file is not None:
-    # Read the Excel file
+# Function to load data from the file
+def load_data(uploaded_file):
+    # Load the Excel file
     xls = pd.ExcelFile(uploaded_file)
-    sheet_names = xls.sheet_names
-    st.sidebar.write(f"Sheets available: {sheet_names}")
+    df_current = pd.read_excel(xls, sheet_name="Raw_Data")
+    df_previous = pd.read_excel(xls, sheet_name="PreviousWeek_Raw_Data")
+    return df_current, df_previous
+
+# Preprocessing to extract totals for the required fields
+def get_totals(df, status_type):
+    # Filter the data by Status Type (e.g., Committed for the Month, Upside for the Month, Closed Won)
+    filtered_data = df[df['Status'] == status_type]
+    total = filtered_data['Amount'].sum()
+    return total
+
+# Function to render the sales cards
+def display_sales_cards(df_current, df_previous):
+    # Committed Data
+    committed_current = get_totals(df_current, "Committed for the Month")
+    committed_previous = get_totals(df_previous, "Committed for the Month")
+    committed_delta = committed_current - committed_previous
+
+    # Upside Data
+    upside_current = get_totals(df_current, "Upside for the Month")
+    upside_previous = get_totals(df_previous, "Upside for the Month")
+    upside_delta = upside_current - upside_previous
+
+    # Closed Won Data
+    closed_won_current = get_totals(df_current, "Closed Won")
+    closed_won_previous = get_totals(df_previous, "Closed Won")
+    closed_won_delta = closed_won_current - closed_won_previous
+
+    # Overall Committed Data (Committed + Closed Won)
+    overall_committed_current = committed_current + closed_won_current
+    overall_committed_previous = committed_previous + closed_won_previous
+    overall_committed_delta = overall_committed_current - overall_committed_previous
+
+    # Display Cards
+    col1, col2, col3, col4 = st.columns(4)
     
-    # Select Sheets for current and previous week data
-    selected_current_sheet = st.sidebar.selectbox("Select Current Week Sheet", sheet_names)
-    selected_previous_sheet = st.sidebar.selectbox("Select Previous Week Sheet", sheet_names)
-    
-    df_current = pd.read_excel(xls, sheet_name=selected_current_sheet)
-    df_previous = pd.read_excel(xls, sheet_name=selected_previous_sheet)
+    with col1:
+        st.markdown("### Committed Data")
+        st.metric(label="Total (Current Week)", value=f"₹ {committed_current/1e5:.1f}L", delta=f"₹ {committed_delta/1e5:.1f}L")
+        
+    with col2:
+        st.markdown("### Upside Data")
+        st.metric(label="Total (Current Week)", value=f"₹ {upside_current/1e5:.1f}L", delta=f"₹ {upside_delta/1e5:.1f}L")
 
-    # Preprocess the data
-    def preprocess(df):
-        df["Sales Owner"] = df["Sales Owner"].astype(str).str.strip()
-        df["Quarter"] = df["Quarter"].astype(str).str.strip()
-        df["Amount"] = pd.to_numeric(df["Amount"], errors="coerce").fillna(0)
-        return df
+    with col3:
+        st.markdown("### Closed Won")
+        st.metric(label="Total (Current Week)", value=f"₹ {closed_won_current/1e5:.1f}L", delta=f"₹ {closed_won_delta/1e5:.1f}L")
+        
+    with col4:
+        st.markdown("### Overall Committed Data")
+        st.metric(label="Total (Current Week)", value=f"₹ {overall_committed_current/1e5:.1f}L", delta=f"₹ {overall_committed_delta/1e5:.1f}L")
 
-    df_current = preprocess(df_current)
-    df_previous = preprocess(df_previous)
+# Streamlit Application
+def main():
+    st.title("Sales Dashboard")
 
-    # Filter options for Sales Owner and Quarter
-    sales_owner_filter = st.sidebar.selectbox('Select Sales Owner', ['All'] + df_current['Sales Owner'].unique().tolist())
-    quarters = ['All'] + df_current['Quarter'].unique().tolist()
-    quarter_filter = st.sidebar.selectbox('Select Quarter', quarters)
+    # File upload
+    uploaded_file = st.file_uploader("Upload Excel file", type=["xlsx"])
 
-    # Filter data based on selections
-    if sales_owner_filter != "All":
-        df_current = df_current[df_current['Sales Owner'] == sales_owner_filter]
-        df_previous = df_previous[df_previous['Sales Owner'] == sales_owner_filter]
-    if quarter_filter != "All":
-        df_current = df_current[df_current['Quarter'] == quarter_filter]
-        df_previous = df_previous[df_previous['Quarter'] == quarter_filter]
+    if uploaded_file is not None:
+        df_current, df_previous = load_data(uploaded_file)
+        display_sales_cards(df_current, df_previous)
 
-    # Header of the Dashboard
-    st.title("📊 Quarter Summary Dashboard")
-
-    # Calculate total values for current and previous week overall data
-    total_current_week = df_current["Amount"].sum()
-    total_previous_week = df_previous["Amount"].sum()
-
-    # Display Overall Current and Previous Week totals
-    st.markdown(f"### Overall Total (Current Week): ₹ {total_current_week:,.0f} Lakhs")
-    st.markdown(f"### Overall Total (Previous Week): ₹ {total_previous_week:,.0f} Lakhs")
-
-    # Sales Owner, Current Week, Previous Week, Delta Table
-    st.markdown("### Sales Owner Comparison Table (in ₹ Lakhs)")
-
-    # Group data by Sales Owner for both weeks
-    df_current_summary = df_current.groupby('Sales Owner')['Amount'].sum().reset_index().rename(columns={'Amount': 'Overall (Current Week)'})
-    df_previous_summary = df_previous.groupby('Sales Owner')['Amount'].sum().reset_index().rename(columns={'Amount': 'Overall (Previous Week)'})
-
-    # Merge current and previous week data
-    df_comparison = pd.merge(df_current_summary, df_previous_summary, on='Sales Owner', how='outer')
-
-    # Calculate Delta
-    df_comparison['Delta'] = df_comparison['Overall (Current Week)'] - df_comparison['Overall (Previous Week)']
-
-    # Remove "NaN" entries (if any)
-    df_comparison = df_comparison.dropna(subset=['Sales Owner'])
-
-    # Display the table with Sales Owner, Current Week, Previous Week, and Delta
-    st.dataframe(df_comparison, use_container_width=True)
-
-else:
-    st.warning("⚠️ Please upload an Excel file to continue.")
+if __name__ == "__main__":
+    main()
