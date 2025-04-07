@@ -13,7 +13,30 @@ if uploaded_file:
         current_week_df = pd.read_excel(xls, sheet_name="Raw_Data")
         previous_week_df = pd.read_excel(xls, sheet_name="PreviousWeek_Raw_Data")
 
-        # ---- COMMITTED DATA ----
+        # Ensure 'Quarter' exists
+        if "Quarter" not in current_week_df.columns or "Quarter" not in previous_week_df.columns:
+            st.error("❌ 'Quarter' column not found in one of the sheets.")
+            st.stop()
+
+        # ---- Filters ----
+        all_quarters = sorted(current_week_df["Quarter"].dropna().unique())
+        all_sales_owners = sorted(current_week_df["Sales Owner"].dropna().unique())
+
+        selected_quarter = st.selectbox("📅 Select Quarter", options=["All"] + all_quarters)
+        selected_owner = st.selectbox("👤 Select Sales Owner", options=["All"] + all_sales_owners)
+
+        # Apply filters
+        def apply_filters(df):
+            if selected_quarter != "All":
+                df = df[df["Quarter"] == selected_quarter]
+            if selected_owner != "All":
+                df = df[df["Sales Owner"] == selected_owner]
+            return df
+
+        current_week_df = apply_filters(current_week_df)
+        previous_week_df = apply_filters(previous_week_df)
+
+        # ---- COMMITMENT ----
         committed_current = current_week_df[current_week_df["Status"] == "Committed for the Month"]
         committed_previous = previous_week_df[previous_week_df["Status"] == "Committed for the Month"]
 
@@ -26,13 +49,9 @@ if uploaded_file:
         }).fillna(0)
 
         commitment_df["Delta (Committed)"] = commitment_df["Overall Committed (Current Week)"] - commitment_df["Overall Committed (Previous Week)"]
-        commitment_df = commitment_df.reset_index().astype({
-            "Overall Committed (Current Week)": int,
-            "Overall Committed (Previous Week)": int,
-            "Delta (Committed)": int
-        })
+        commitment_df = commitment_df.reset_index().astype(int)
 
-        # ---- UPSIDE DATA ----
+        # ---- UPSIDE ----
         upside_current = current_week_df[current_week_df["Status"] == "Upside for the Month"]
         upside_previous = previous_week_df[previous_week_df["Status"] == "Upside for the Month"]
 
@@ -45,11 +64,7 @@ if uploaded_file:
         }).fillna(0)
 
         upside_df["Delta (Upside)"] = upside_df["Overall Upside (Current Week)"] - upside_df["Overall Upside (Previous Week)"]
-        upside_df = upside_df.reset_index().astype({
-            "Overall Upside (Current Week)": int,
-            "Overall Upside (Previous Week)": int,
-            "Delta (Upside)": int
-        })
+        upside_df = upside_df.reset_index().astype(int)
 
         # ---- DISPLAY ----
         col1, col2 = st.columns(2)
@@ -62,26 +77,7 @@ if uploaded_file:
             st.subheader("🔁 Upside Comparison (in ₹ Lakhs)")
             st.dataframe(upside_df, use_container_width=True)
 
-        # ---- DOWNLOAD ----
-        st.markdown("### ⬇️ Download Reports")
-        col3, col4 = st.columns(2)
-        with col3:
-            st.download_button(
-                "Download Commitment CSV",
-                commitment_df.to_csv(index=False).encode('utf-8'),
-                file_name="commitment_comparison.csv",
-                mime="text/csv"
-            )
-        with col4:
-            st.download_button(
-                "Download Upside CSV",
-                upside_df.to_csv(index=False).encode('utf-8'),
-                file_name="upside_comparison.csv",
-                mime="text/csv"
-            )
-
     except Exception as e:
         st.error(f"⚠️ Error reading file: {e}")
-
 else:
-    st.info("Upload an Excel file with sheets: `Raw_Data` and `PreviousWeek_Raw_Data`")
+    st.info("Upload an Excel file with sheets: `Raw_Data` and `PreviousWeek_Raw_Data` containing 'Sales Owner', 'Status', 'Amount', and 'Quarter'.")
