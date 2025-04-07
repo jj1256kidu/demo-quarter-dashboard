@@ -105,7 +105,7 @@ if uploaded_file:
                 'Delta': '₹{:,.0f}'
             }) \
             .map({'Delta': highlight_deltas}) \
-            .apply(lambda df: ['background-color: yellow; font-weight: bold;' if i == len(df)-1 else '' for i in range(len(df))], axis=0)
+            .apply(lambda _: ['background-color: yellow; font-weight: bold;' if i == len(sales_final)-1 else '' for i in range(len(sales_final))], axis=0)
 
         st.dataframe(sales_styled)
 
@@ -140,7 +140,7 @@ if uploaded_file:
                 'Delta': '₹{:,.0f}'
             }) \
             .map({'Delta': highlight_deltas}) \
-            .apply(lambda df: ['background-color: yellow; font-weight: bold;' if i == len(df)-1 else '' for i in range(len(df))], axis=0)
+            .apply(lambda _: ['background-color: yellow; font-weight: bold;' if i == len(func_final)-1 else '' for i in range(len(func_final))], axis=0)
 
         st.dataframe(func_styled)
 
