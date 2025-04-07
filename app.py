@@ -51,8 +51,12 @@ if uploaded_file:
             df_summary[f"Δ {label}"] = df_summary[f"{label} (Current Week)"] - df_summary[f"{label} (Previous Week)"]
             df_summary = df_summary.reset_index()
 
+            # Convert numeric columns to int
             for col in df_summary.columns[1:]:
                 df_summary[col] = df_summary[col].astype(int)
+
+            # Sort Sales Owner alphabetically
+            df_summary = df_summary.sort_values(by="Sales Owner")
 
             # Add Total row
             totals = {
@@ -62,6 +66,7 @@ if uploaded_file:
                 f"Δ {label}": df_summary[f"Δ {label}"].sum(),
             }
             df_summary.loc[len(df_summary.index)] = totals
+
             return df_summary
 
         commitment_df = generate_summary("Committed for the Month", "Committed")
