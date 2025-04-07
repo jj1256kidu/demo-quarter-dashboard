@@ -139,4 +139,3 @@ elif page == "📊 Quarter Summary Dashboard":
         overall_table["Overall Committed + Closed Won (Previous Week)"] = overall_table["Amount (Previous Week)"] + closed_table["Amount (Previous Week)"]
         overall_table["∆ Overall Committed + Closed Won"] = overall_table["Overall Committed + Closed Won (Current Week)"] - overall_table["Overall Committed + Closed Won (Previous Week)"]
         st.dataframe(overall_table, use_container_width=True)
-
