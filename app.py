@@ -27,8 +27,14 @@ def display_committed_for_month(df_current, df_previous):
     df_current_agg = agg_amount(df_current_filtered).rename(columns={"Amount": "Current Week"})
     df_previous_agg = agg_amount(df_previous_filtered).rename(columns={"Amount": "Previous Week"})
 
-    # Merge the data for current and previous week
-    df = pd.merge(df_current_agg, df_previous_agg, on="Sales Owner", how="outer").fillna(0)
+    # Get all unique sales owners from both current and previous week data
+    all_sales_owners = sorted(set(df_current["Sales Owner"].unique()) | set(df_previous["Sales Owner"].unique()))
+
+    # Create a dataframe with all sales owners, even those with no data
+    all_sales_owners_df = pd.DataFrame({"Sales Owner": all_sales_owners})
+
+    # Merge the data for current and previous week, ensuring all sales owners are included
+    df = all_sales_owners_df.merge(df_current_agg, on="Sales Owner", how="left").merge(df_previous_agg, on="Sales Owner", how="left").fillna(0)
 
     # Calculate delta
     df["Delta"] = df["Current Week"] - df["Previous Week"]
