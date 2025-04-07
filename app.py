@@ -57,35 +57,62 @@ if uploaded_file is not None:
         st.markdown("### 📝 Commitment Comparison (in ₹ Lakhs)")
         df_commit_current = df_current[df_current['Status'] == 'Committed for the Month']
         df_commit_previous = df_previous[df_previous['Status'] == 'Committed for the Month']
-        st.dataframe(df_commit_current[['Sales Owner', 'Amount']], use_container_width=True)
-        st.dataframe(df_commit_previous[['Sales Owner', 'Amount']], use_container_width=True)
+
+        # Summarize data with current week, previous week, and delta
+        df_commit_current_summary = df_commit_current.groupby('Sales Owner')['Amount'].sum().reset_index()
+        df_commit_previous_summary = df_commit_previous.groupby('Sales Owner')['Amount'].sum().reset_index()
+
+        # Merge data from both current and previous week
+        merged_df = pd.merge(df_commit_current_summary, df_commit_previous_summary, on='Sales Owner', how='outer', suffixes=(' (Current Week)', ' (Previous Week)')).fillna(0)
+        merged_df['Delta'] = merged_df['Amount (Current Week)'] - merged_df['Amount (Previous Week)']
+
+        # Display the table for Commitment Comparison
+        st.dataframe(merged_df, use_container_width=True)
 
     elif tab == "Upside":
         st.markdown("### 🔁 Upside Comparison (in ₹ Lakhs)")
         df_upside_current = df_current[df_current['Status'] == 'Upside for the Month']
         df_upside_previous = df_previous[df_previous['Status'] == 'Upside for the Month']
-        st.dataframe(df_upside_current[['Sales Owner', 'Amount']], use_container_width=True)
-        st.dataframe(df_upside_previous[['Sales Owner', 'Amount']], use_container_width=True)
+
+        df_upside_current_summary = df_upside_current.groupby('Sales Owner')['Amount'].sum().reset_index()
+        df_upside_previous_summary = df_upside_previous.groupby('Sales Owner')['Amount'].sum().reset_index()
+
+        merged_upside_df = pd.merge(df_upside_current_summary, df_upside_previous_summary, on='Sales Owner', how='outer', suffixes=(' (Current Week)', ' (Previous Week)')).fillna(0)
+        merged_upside_df['Delta'] = merged_upside_df['Amount (Current Week)'] - merged_upside_df['Amount (Previous Week)']
+
+        st.dataframe(merged_upside_df, use_container_width=True)
 
     elif tab == "Closed Won":
         st.markdown("### ✅ Closed Won Comparison (in ₹ Lakhs)")
         df_closed_current = df_current[df_current['Status'] == 'Closed Won']
         df_closed_previous = df_previous[df_previous['Status'] == 'Closed Won']
-        st.dataframe(df_closed_current[['Sales Owner', 'Amount']], use_container_width=True)
-        st.dataframe(df_closed_previous[['Sales Owner', 'Amount']], use_container_width=True)
+
+        df_closed_current_summary = df_closed_current.groupby('Sales Owner')['Amount'].sum().reset_index()
+        df_closed_previous_summary = df_closed_previous.groupby('Sales Owner')['Amount'].sum().reset_index()
+
+        merged_closed_df = pd.merge(df_closed_current_summary, df_closed_previous_summary, on='Sales Owner', how='outer', suffixes=(' (Current Week)', ' (Previous Week)')).fillna(0)
+        merged_closed_df['Delta'] = merged_closed_df['Amount (Current Week)'] - merged_closed_df['Amount (Previous Week)']
+
+        st.dataframe(merged_closed_df, use_container_width=True)
 
     elif tab == "Overall":
         st.markdown("### 📈 Overall Committed + Closed Won Comparison (in ₹ Lakhs)")
-        df_current['Overall (Current Week)'] = df_current['Amount'] + df_current['Amount']
-        df_previous['Overall (Previous Week)'] = df_previous['Amount'] + df_previous['Amount']
-        st.dataframe(df_current[['Sales Owner', 'Overall (Current Week)']], use_container_width=True)
-        st.dataframe(df_previous[['Sales Owner', 'Overall (Previous Week)']], use_container_width=True)
+        df_current['Overall (Current Week)'] = df_current['Amount'] + df_current['Amount']  # Add the necessary logic here
+        df_previous['Overall (Previous Week)'] = df_previous['Amount'] + df_previous['Amount']  # Add the necessary logic here
+
+        df_current_summary = df_current.groupby('Sales Owner')['Overall (Current Week)'].sum().reset_index()
+        df_previous_summary = df_previous.groupby('Sales Owner')['Overall (Previous Week)'].sum().reset_index()
+
+        merged_overall_df = pd.merge(df_current_summary, df_previous_summary, on='Sales Owner', how='outer', suffixes=(' (Current Week)', ' (Previous Week)')).fillna(0)
+        merged_overall_df['Delta'] = merged_overall_df['Overall (Current Week)'] - merged_overall_df['Overall (Previous Week)']
+
+        st.dataframe(merged_overall_df, use_container_width=True)
 
     # Add a summary section below the tables
     st.markdown("### 🔥 Summary Metrics")
 
-    total_commit_current_week = df_current['Amount'].sum()
-    total_commit_previous_week = df_previous['Amount'].sum()
+    total_commit_current_week = df_commit_current['Amount'].sum()
+    total_commit_previous_week = df_commit_previous['Amount'].sum()
     total_delta = total_commit_current_week - total_commit_previous_week
 
     st.markdown(f"**Total Commitment (Current Week):** ₹ {total_commit_current_week}")
