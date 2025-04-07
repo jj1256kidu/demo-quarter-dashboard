@@ -1,67 +1,49 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Weekly Commit Delta", layout="wide")
-st.title("📊 Weekly Commitment Comparison")
+st.set_page_config(page_title="Weekly Commitment Comparison", layout="centered")
 
-uploaded_file = st.file_uploader("📁 Upload Excel file", type=["xlsx"])
+st.title("📊 Weekly Sales Commitment Comparison")
+
+uploaded_file = st.file_uploader("Upload Excel File (.xlsx)", type="xlsx")
 
 if uploaded_file:
     try:
-        # Load the entire Excel file
+        # Load both sheets
         xls = pd.ExcelFile(uploaded_file)
-        st.success("✅ Excel file loaded successfully!")
+        current_week_df = pd.read_excel(xls, sheet_name="Raw_Data")
+        previous_week_df = pd.read_excel(xls, sheet_name="PreviousWeek_Raw_Data")
 
-        # Let user select the correct sheets
-        sheet_names = xls.sheet_names
-        col1, col2 = st.columns(2)
-        with col1:
-            current_sheet = st.selectbox("Select Current Week Sheet", options=sheet_names, index=0)
-        with col2:
-            previous_sheet = st.selectbox("Select Previous Week Sheet", options=sheet_names, index=1 if len(sheet_names) > 1 else 0)
+        # Filter for committed deals
+        current_committed = current_week_df[current_week_df["Status"] == "Committed for the Month"]
+        previous_committed = previous_week_df[previous_week_df["Status"] == "Committed for the Month"]
 
-        # Load selected sheets
-        current_df = pd.read_excel(xls, sheet_name=current_sheet)
-        previous_df = pd.read_excel(xls, sheet_name=previous_sheet)
+        # Group by Sales Owner and sum Amount in Lakhs (₹10^5), rounded
+        current_grouped = current_committed.groupby("Sales Owner")["Amount"].sum().div(1e5).round()
+        previous_grouped = previous_committed.groupby("Sales Owner")["Amount"].sum().div(1e5).round()
 
-        # Preview both
-        st.subheader("📄 Current Week Data")
-        st.dataframe(current_df.head())
-        st.subheader("📄 Previous Week Data")
-        st.dataframe(previous_df.head())
+        # Merge both DataFrames
+        comparison_df = pd.DataFrame({
+            "Overall Committed (Current Week)": current_grouped,
+            "Overall Committed (Previous Week)": previous_grouped
+        }).fillna(0)
 
-        # Show unique statuses to help user
-        st.markdown("### 🧩 Unique 'Status' Values")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write(f"**{current_sheet}**", current_df["Status"].unique())
-        with col2:
-            st.write(f"**{previous_sheet}**", previous_df["Status"].unique())
+        comparison_df["Delta"] = comparison_df["Overall Committed (Current Week)"] - comparison_df["Overall Committed (Previous Week)"]
+        comparison_df = comparison_df.reset_index()
+        comparison_df = comparison_df.astype({
+            "Overall Committed (Current Week)": "int",
+            "Overall Committed (Previous Week)": "int",
+            "Delta": "int"
+        })
 
-        # Filter for "Committed for the month"
-        current_commit = current_df[current_df["Status"] == "Committed for the month"]
-        previous_commit = previous_df[previous_df["Status"] == "Committed for the month"]
+        st.subheader("🧾 Commitment Comparison Table (in ₹ Lakhs)")
+        st.dataframe(comparison_df, use_container_width=True)
 
-        # Group and sum Amount
-        current_sum = current_commit.groupby("Sales Owner")["Amount"].sum().reset_index()
-        current_sum.columns = ["Sales Owner", "Overall Committed (Current Week)"]
-
-        previous_sum = previous_commit.groupby("Sales Owner")["Amount"].sum().reset_index()
-        previous_sum.columns = ["Sales Owner", "Overall Committed (Previous Week)"]
-
-        # Merge and compute delta
-        combined = pd.merge(current_sum, previous_sum, on="Sales Owner", how="outer").fillna(0)
-        combined["Delta"] = combined["Overall Committed (Current Week)"] - combined["Overall Committed (Previous Week)"]
-
-        # Convert to Lakhs
-        for col in ["Overall Committed (Current Week)", "Overall Committed (Previous Week)", "Delta"]:
-            combined[col] = (combined[col] / 100000).round(2)
-
-        st.subheader("✅ Final Comparison Table")
-        st.dataframe(combined, use_container_width=True)
+        # Optional: Download as CSV
+        csv = comparison_df.to_csv(index=False).encode('utf-8')
+        st.download_button("📥 Download as CSV", data=csv, file_name="weekly_comparison.csv", mime="text/csv")
 
     except Exception as e:
-        st.error(f"❌ Error: {e}")
-
+        st.error(f"Error processing file: {str(e)}")
 else:
-    st.info("Upload an Excel file to begin.")
+    st.info("Please upload an Excel file containing 'Raw_Data' and 'PreviousWeek_Raw_Data' sheets.")
