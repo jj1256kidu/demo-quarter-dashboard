@@ -12,14 +12,12 @@ if uploaded_file:
         current_week_df = pd.read_excel(xls, sheet_name="Raw_Data")
         previous_week_df = pd.read_excel(xls, sheet_name="PreviousWeek_Raw_Data")
 
-        # Basic validation
         required_cols = ['Quarter', 'Sales Owner', 'Status', 'Amount']
         for col in required_cols:
             if col not in current_week_df.columns or col not in previous_week_df.columns:
                 st.error(f"🚨 Missing column: `{col}` in one of the sheets.")
                 st.stop()
 
-        # Filters
         colA, colB = st.columns([1, 1])
         with colA:
             quarters = sorted(current_week_df["Quarter"].dropna().unique())
@@ -28,7 +26,6 @@ if uploaded_file:
             sales_owners = sorted(current_week_df["Sales Owner"].dropna().unique())
             selected_owner = st.selectbox("👤 Select Sales Owner", options=["All"] + sales_owners)
 
-        # Filtering Function
         def filter_data(df):
             if selected_quarter != "All":
                 df = df[df["Quarter"] == selected_quarter]
@@ -39,7 +36,6 @@ if uploaded_file:
         current_week_df = filter_data(current_week_df)
         previous_week_df = filter_data(previous_week_df)
 
-        # --- Helper for Commit/Upside ---
         def generate_summary(status_filter, label):
             current_filtered = current_week_df[current_week_df["Status"] == status_filter]
             previous_filtered = previous_week_df[previous_week_df["Status"] == status_filter]
@@ -54,14 +50,23 @@ if uploaded_file:
 
             df_summary[f"Δ {label}"] = df_summary[f"{label} (Current Week)"] - df_summary[f"{label} (Previous Week)"]
             df_summary = df_summary.reset_index()
+
             for col in df_summary.columns[1:]:
                 df_summary[col] = df_summary[col].astype(int)
+
+            # Add Total row
+            totals = {
+                "Sales Owner": "🔢 Total",
+                f"{label} (Current Week)": df_summary[f"{label} (Current Week)"].sum(),
+                f"{label} (Previous Week)": df_summary[f"{label} (Previous Week)"].sum(),
+                f"Δ {label}": df_summary[f"Δ {label}"].sum(),
+            }
+            df_summary.loc[len(df_summary.index)] = totals
             return df_summary
 
         commitment_df = generate_summary("Committed for the Month", "Committed")
         upside_df = generate_summary("Upside for the Month", "Upside")
 
-        # --- Display Both Tables ---
         col1, col2 = st.columns(2)
 
         with col1:
@@ -83,4 +88,4 @@ if uploaded_file:
     except Exception as e:
         st.error(f"⚠️ Error: {e}")
 else:
-    st.info("📌 Please upload an Excel file containing `Raw_Data` and `PreviousWeek_Raw_Data` sheets with the correct columns.")
+    st.info("📌 Please upload an Excel file with `Raw_Data` and `PreviousWeek_Raw_Data` sheets including the required columns.")
