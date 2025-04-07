@@ -75,7 +75,8 @@ def display_committed_for_month(df_current, df_previous):
         </style>
     """, unsafe_allow_html=True)
 
-    # Display the table with Streamlit (centered)
+    # Display the heading and the table with Streamlit (centered)
+    st.markdown("### 📝 Committed Data")
     st.dataframe(df.style.set_table_attributes('class="stTable"'), use_container_width=True)
 
 # Streamlit app
