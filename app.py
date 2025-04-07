@@ -9,19 +9,19 @@ def preprocess(df):
     df["Amount"] = pd.to_numeric(df["Amount"], errors="coerce").fillna(0)
     return df
 
-# Function to filter data for "Committed for the Month"
-def filter_committed(df):
-    return df[df["Status"] == "Committed for the Month"]
+# Function to filter data by status (Committed for the Month, Upside for the Month, etc.)
+def filter_status(df, status):
+    return df[df["Status"] == status]
 
 # Function to aggregate the data
 def agg_amount(df):
     return df.groupby("Sales Owner")["Amount"].sum().reset_index()
 
-# Function to display the sales owner table with current week, previous week, and delta
-def display_committed_for_month(df_current, df_previous):
-    # Filter the data for "Committed for the Month"
-    df_current_filtered = filter_committed(df_current)
-    df_previous_filtered = filter_committed(df_previous)
+# Function to display the table with Sales Owner and their data for each status (Committed, Upside, Closed Won, Overall Committed)
+def display_data(df_current, df_previous, status, label):
+    # Filter the data based on status
+    df_current_filtered = filter_status(df_current, status)
+    df_previous_filtered = filter_status(df_previous, status)
 
     # Aggregate the data for current and previous week
     df_current_agg = agg_amount(df_current_filtered).rename(columns={"Amount": "Current Week"})
@@ -79,12 +79,12 @@ def display_committed_for_month(df_current, df_previous):
     """, unsafe_allow_html=True)
 
     # Display the heading and the table with Streamlit (centered)
-    st.markdown("### 📝 Committed Data")
+    st.markdown(f"### 📝 {label}")
     st.dataframe(df.style.set_table_attributes('class="stTable"'), use_container_width=True)
 
 # Streamlit app
 def main():
-    st.title("📊 Committed for the Month Data")
+    st.title("📊 Data Overview: Committed, Upside, Closed Won, and Overall Committed")
 
     uploaded_file = st.file_uploader("Upload Excel file", type=["xlsx"])
 
@@ -98,8 +98,17 @@ def main():
         df_current = preprocess(df_current)
         df_previous = preprocess(df_previous)
 
-        # Display the committed for the month table
-        display_committed_for_month(df_current, df_previous)
+        # Display the Committed for the Month data
+        display_data(df_current, df_previous, "Committed for the Month", "Committed Data")
+
+        # Display the Upside for the Month data
+        display_data(df_current, df_previous, "Upside for the Month", "Upside Data")
+
+        # Display the Closed Won data
+        display_data(df_current, df_previous, "Closed Won", "Closed Won Data")
+
+        # Display the Overall Committed + Closed Won data
+        display_data(df_current, df_previous, "Committed for the Month", "Overall Committed Data (Committed + Closed Won)")
 
 if __name__ == "__main__":
     main()
