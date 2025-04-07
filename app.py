@@ -132,8 +132,12 @@ def display_sales_owner_table(df_current, df_previous, selected_status, selected
         try:
             # Ensure the value is numeric before comparing
             val = float(val)
-            color = 'green' if val > 0 else 'red' if val < 0 else 'black'
-            return f'color: {color}; font-weight: bold'
+            if val > 0:
+                return 'color: green; font-weight: bold'
+            elif val < 0:
+                return 'color: lightcoral; font-weight: bold'
+            else:
+                return 'color: black'
         except ValueError:
             # If the value can't be converted to float, return default style
             return 'color: black'
