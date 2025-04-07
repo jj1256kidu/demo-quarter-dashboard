@@ -99,16 +99,24 @@ def display_dashboard():
 
     st.title("Sales Dashboard")
 
-    # Filter the data based on "Status" column to check for Committed and Upside data
+    # Filter the data based on "Status" column to check for Committed, Upside, and Closed Won data
     committed_current_week = df_current[df_current['Status'] == "Committed for the Month"]['Amount'].sum()
     upside_current_week = df_current[df_current['Status'] == "Upside for the Month"]['Amount'].sum()
+    closed_won_current_week = df_current[df_current['Status'] == "Closed Won"]['Amount'].sum()
 
     committed_previous_week = df_previous[df_previous['Status'] == "Committed for the Month"]['Amount'].sum()
     upside_previous_week = df_previous[df_previous['Status'] == "Upside for the Month"]['Amount'].sum()
+    closed_won_previous_week = df_previous[df_previous['Status'] == "Closed Won"]['Amount'].sum()
 
     # Calculate deltas
     committed_delta = committed_current_week - committed_previous_week
     upside_delta = upside_current_week - upside_previous_week
+    closed_won_delta = closed_won_current_week - closed_won_previous_week
+
+    # Calculate overall committed data (Committed + Closed Won)
+    overall_committed_current_week = committed_current_week + closed_won_current_week
+    overall_committed_previous_week = committed_previous_week + closed_won_previous_week
+    overall_committed_delta = overall_committed_current_week - overall_committed_previous_week
 
     # Create KPI Card for Committed Data
     with st.container():
@@ -132,6 +140,7 @@ def display_dashboard():
             </div>
         """, unsafe_allow_html=True)
 
+        # Create KPI Card for Upside Data
         st.markdown(f"""
             <div class="metric-container">
                 <div class="card">
@@ -147,6 +156,48 @@ def display_dashboard():
                 <div class="card">
                     <div class="metric-label">Delta</div>
                     <div class="metric-value {'delta-positive' if upside_delta > 0 else 'delta-negative'}">₹{upside_delta / 100000:.0f}L</div>
+                    <div class="metric-label">Change</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # Create KPI Card for Closed Won Data
+        st.markdown(f"""
+            <div class="metric-container">
+                <div class="card">
+                    <div class="metric-label">Closed Won Data (Current Week)</div>
+                    <div class="metric-value">₹{closed_won_current_week / 100000:.0f}L</div>
+                    <div class="metric-label">Current Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Closed Won Data (Previous Week)</div>
+                    <div class="metric-value">₹{closed_won_previous_week / 100000:.0f}L</div>
+                    <div class="metric-label">Previous Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Delta</div>
+                    <div class="metric-value {'delta-positive' if closed_won_delta > 0 else 'delta-negative'}">₹{closed_won_delta / 100000:.0f}L</div>
+                    <div class="metric-label">Change</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # Create KPI Card for Overall Committed Data (Committed + Closed Won)
+        st.markdown(f"""
+            <div class="metric-container">
+                <div class="card">
+                    <div class="metric-label">Overall Committed Data (Current Week)</div>
+                    <div class="metric-value">₹{overall_committed_current_week / 100000:.0f}L</div>
+                    <div class="metric-label">Current Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Overall Committed Data (Previous Week)</div>
+                    <div class="metric-value">₹{overall_committed_previous_week / 100000:.0f}L</div>
+                    <div class="metric-label">Previous Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Delta</div>
+                    <div class="metric-value {'delta-positive' if overall_committed_delta > 0 else 'delta-negative'}">₹{overall_committed_delta / 100000:.0f}L</div>
                     <div class="metric-label">Change</div>
                 </div>
             </div>
