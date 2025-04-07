@@ -1,89 +1,93 @@
+
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Weekly Commitment Comparison", layout="wide")
+st.set_page_config(layout="wide", page_title="Weekly Commitment Comparison Tool")
 
-st.title("📊 Weekly Commitment Comparison Tool")
+# Initialize session state
+if 'uploaded_file' not in st.session_state:
+    st.session_state.uploaded_file = None
+if 'current_week_df' not in st.session_state:
+    st.session_state.current_week_df = pd.DataFrame()
+if 'previous_week_df' not in st.session_state:
+    st.session_state.previous_week_df = pd.DataFrame()
+if 'current_sheet' not in st.session_state:
+    st.session_state.current_sheet = None
+if 'previous_sheet' not in st.session_state:
+    st.session_state.previous_sheet = None
 
-uploaded_file = st.file_uploader("📁 Upload Excel file", type=["xlsx"])
+# Sidebar navigation
+page = st.sidebar.radio("Go to", ["📂 Data Input", "📊 Quarter Summary Dashboard"])
 
-if uploaded_file:
-    try:
-        xls = pd.ExcelFile(uploaded_file)
-        sheet_names = xls.sheet_names
+if page == "📂 Data Input":
+    st.title("📊 Weekly Commitment Comparison Tool")
+
+    uploaded_file = st.file_uploader("Upload Excel file", type=["xlsx"])
+    if uploaded_file:
+        st.session_state.uploaded_file = uploaded_file
+        xl = pd.ExcelFile(uploaded_file)
         st.success("✅ Excel file loaded successfully!")
+        sheet_names = xl.sheet_names
 
-        current_sheet = st.selectbox("Select Current Week Sheet", sheet_names, key="current")
-        previous_sheet = st.selectbox("Select Previous Week Sheet", sheet_names, key="previous")
+        current_sheet = st.selectbox("Select Current Week Sheet", sheet_names, key="cur")
+        previous_sheet = st.selectbox("Select Previous Week Sheet", sheet_names, key="prev")
 
-        current_week_df = pd.read_excel(xls, sheet_name=current_sheet)
-        previous_week_df = pd.read_excel(xls, sheet_name=previous_sheet)
+        if current_sheet and previous_sheet:
+            st.session_state.current_sheet = current_sheet
+            st.session_state.previous_sheet = previous_sheet
+            st.session_state.current_week_df = xl.parse(current_sheet)
+            st.session_state.previous_week_df = xl.parse(previous_sheet)
 
-        # Show filters
-        quarters = sorted(current_week_df['Quarter'].dropna().unique())
-        sales_owners = sorted(current_week_df['Sales Owner'].dropna().unique())
+elif page == "📊 Quarter Summary Dashboard":
+    st.title("📈 Quarter Summary Dashboard")
 
-        selected_quarter = st.selectbox("📅 Select Quarter", quarters)
-        selected_sales_owner = st.selectbox("🧑‍💼 Select Sales Owner", ["All"] + sales_owners)
-
-        # Apply filters
-        current_week_df = current_week_df[current_week_df["Quarter"] == selected_quarter]
-        previous_week_df = previous_week_df[previous_week_df["Quarter"] == selected_quarter]
-
-        if selected_sales_owner != "All":
-            current_week_df = current_week_df[current_week_df["Sales Owner"] == selected_sales_owner]
-            previous_week_df = previous_week_df[previous_week_df["Sales Owner"] == selected_sales_owner]
-
-        def generate_summary(status_filter, label):
-            current_filtered = current_week_df[current_week_df["Status"] == status_filter]
-            previous_filtered = previous_week_df[previous_week_df["Status"] == status_filter]
-
-            current_sum = current_filtered.groupby("Sales Owner")["Amount"].sum().div(1e5).round()
-            previous_sum = previous_filtered.groupby("Sales Owner")["Amount"].sum().div(1e5).round()
-
-            df_summary = pd.DataFrame({
-                f"{label} (Current Week)": current_sum,
-                f"{label} (Previous Week)": previous_sum
-            }).fillna(0)
-
-            df_summary[f"Δ {label}"] = df_summary[f"{label} (Current Week)"] - df_summary[f"{label} (Previous Week)"]
-            df_summary = df_summary.reset_index()
-
-            # Convert to integers
-            for col in df_summary.columns[1:]:
-                df_summary[col] = df_summary[col].astype(int)
-
-            # Sort Sales Owners
-            df_summary = df_summary.sort_values(by="Sales Owner").reset_index(drop=True)
-
-            # Add Serial Number
-            df_summary.insert(0, "S. No.", range(1, len(df_summary) + 1))
-
-            # Add Total row
-            totals = {
-                "S. No.": "",
-                "Sales Owner": "🔢 Total",
-                f"{label} (Current Week)": df_summary[f"{label} (Current Week)"].sum(),
-                f"{label} (Previous Week)": df_summary[f"{label} (Previous Week)"].sum(),
-                f"Δ {label}": df_summary[f"Δ {label}"].sum(),
-            }
-            df_summary = pd.concat([df_summary, pd.DataFrame([totals])], ignore_index=True)
-
-            return df_summary
+    if st.session_state.uploaded_file is None:
+        st.warning("⚠️ Please upload an Excel file and select sheets from the Data Input page.")
+    else:
+        current_df = st.session_state.current_week_df
+        previous_df = st.session_state.previous_week_df
 
         col1, col2 = st.columns(2)
-
         with col1:
-            st.subheader("🧾 Commitment Comparison (in ₹ Lakhs)")
-            committed_df = generate_summary("Committed for the Month", "Committed")
-            st.dataframe(committed_df, use_container_width=True)
-
+            quarter_filter = st.selectbox("Select Quarter", current_df["Quarter"].dropna().unique())
         with col2:
-            st.subheader("🔁 Upside Comparison (in ₹ Lakhs)")
-            upside_df = generate_summary("Upside for the Month", "Upside")
-            st.dataframe(upside_df, use_container_width=True)
+            sales_owner_filter = st.selectbox("Select Sales Owner", current_df["Sales Owner"].dropna().unique())
 
-    except Exception as e:
-        st.error(f"⚠️ Error reading file: {e}")
-else:
-    st.info("📤 Please upload an Excel file to get started.")
+        # Filter data
+        curr_filtered = current_df[(current_df["Quarter"] == quarter_filter) & (current_df["Sales Owner"] == sales_owner_filter)]
+        prev_filtered = previous_df[(previous_df["Quarter"] == quarter_filter) & (previous_df["Sales Owner"] == sales_owner_filter)]
+
+        def summarize(df, status):
+            return df[df['Status'] == status].groupby('Sales Owner')['Amount'].sum().reset_index()
+
+        # Committed
+        committed_current = summarize(curr_filtered, 'Committed for the Month')
+        committed_previous = summarize(prev_filtered, 'Committed for the Month')
+        committed = pd.merge(committed_current, committed_previous, on='Sales Owner', how='outer', suffixes=(' (Current Week)', ' (Previous Week)')).fillna(0)
+        committed['Δ Committed'] = committed['Amount (Current Week)'] - committed['Amount (Previous Week)']
+        committed = committed.rename(columns={'Amount (Current Week)': 'Committed (Current Week)', 'Amount (Previous Week)': 'Committed (Previous Week)'})
+        committed[['Committed (Current Week)', 'Committed (Previous Week)', 'Δ Committed']] = committed[['Committed (Current Week)', 'Committed (Previous Week)', 'Δ Committed']] / 1e5
+        committed[['Committed (Current Week)', 'Committed (Previous Week)', 'Δ Committed']] = committed[['Committed (Current Week)', 'Committed (Previous Week)', 'Δ Committed']].round(0).astype(int)
+
+        # Upside
+        upside_current = summarize(curr_filtered, 'Upside for the Month')
+        upside_previous = summarize(prev_filtered, 'Upside for the Month')
+        upside = pd.merge(upside_current, upside_previous, on='Sales Owner', how='outer', suffixes=(' (Current Week)', ' (Previous Week)')).fillna(0)
+        upside['Δ Upside'] = upside['Amount (Current Week)'] - upside['Amount (Previous Week)']
+        upside = upside.rename(columns={'Amount (Current Week)': 'Upside (Current Week)', 'Amount (Previous Week)': 'Upside (Previous Week)'})
+        upside[['Upside (Current Week)', 'Upside (Previous Week)', 'Δ Upside']] = upside[['Upside (Current Week)', 'Upside (Previous Week)', 'Δ Upside']] / 1e5
+        upside[['Upside (Current Week)', 'Upside (Previous Week)', 'Δ Upside']] = upside[['Upside (Current Week)', 'Upside (Previous Week)', 'Δ Upside']].round(0).astype(int)
+
+        # S.No and Total
+        def format_table(df, title):
+            df.insert(0, "S. No.", range(1, len(df) + 1))
+            total_row = pd.DataFrame([["", "🧮 Total"] + df.iloc[:, 2:].sum(numeric_only=True).tolist()], columns=df.columns)
+            df = pd.concat([df, total_row], ignore_index=True)
+            st.markdown(f"### {title}")
+            st.dataframe(df, use_container_width=True)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            format_table(committed, "📑 Commitment Comparison (in ₹ Lakhs)")
+        with col2:
+            format_table(upside, "🔁 Upside Comparison (in ₹ Lakhs)")
