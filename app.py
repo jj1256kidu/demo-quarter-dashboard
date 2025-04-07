@@ -1,83 +1,148 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 
-# Helper function to format the amounts
-def format_amount(x):
-    try:
-        if pd.isna(x) or x == 0:
-            return "₹0L"
-        value = float(str(x).replace('₹', '').replace('L', '').replace(',', ''))
-        return f"₹{int(value)}L"
-    except:
-        return "₹0L"
+# Set page config
+st.set_page_config(
+    page_title="Sales Dashboard",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Ensure data is loaded
-def load_data():
-    if 'df_current' not in st.session_state or 'df_previous' not in st.session_state:
-        # Load the current and previous week data here
-        # Assuming the dataframe is already loaded into session state
-        return pd.DataFrame(), pd.DataFrame()
-    return st.session_state.df_current, st.session_state.df_previous
+# Custom CSS for modern design
+st.markdown("""
+    <style>
+        /* Add your CSS styling here for modern design */
+        .metric-container {
+            display: flex;
+            justify-content: space-evenly;
+            margin-top: 40px;
+        }
+        .card {
+            background: #2C3E50;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            margin: 15px;
+        }
+        .metric-label {
+            font-size: 1.2em;
+            color: #BDC3C7;
+            margin-bottom: 10px;
+        }
+        .metric-value {
+            font-size: 3.5em;
+            color: #FFFFFF;
+            font-weight: 800;
+        }
+        .delta-positive {
+            color: #2ECC71;
+        }
+        .delta-negative {
+            color: #E74C3C;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
-# Function to calculate the key metrics for display
-def calculate_kpi(df_current, df_previous):
-    # Filter the data based on the "Status" for "Committed for the Month" and "Upside for the Month"
-    committed_current_week = df_current[df_current['Status'] == 'Committed for the Month']['Amount'].sum()
-    committed_previous_week = df_previous[df_previous['Status'] == 'Committed for the Month']['Amount'].sum()
-    committed_delta = committed_current_week - committed_previous_week
-    
-    upside_current_week = df_current[df_current['Status'] == 'Upside for the Month']['Amount'].sum()
-    upside_previous_week = df_previous[df_previous['Status'] == 'Upside for the Month']['Amount'].sum()
-    upside_delta = upside_current_week - upside_previous_week
-    
-    return committed_current_week, committed_previous_week, committed_delta, upside_current_week, upside_previous_week, upside_delta
+# Function to display data input (upload and preview)
+def display_data_input():
+    st.title("Data Input")
 
-def display_kpi(committed_current_week, committed_previous_week, committed_delta, upside_current_week, upside_previous_week, upside_delta):
-    st.markdown("# Key Metrics (KPI)")
-    col1, col2, col3 = st.columns(3)
+    # Upload file widget
+    uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
 
-    # Committed Data KPI
-    with col1:
-        st.markdown("### Committed Data")
-        st.markdown(f"**₹{format_amount(committed_current_week)}**")
-        st.markdown(f"Current Week Total: **₹{format_amount(committed_current_week)}**")
-        st.markdown(f"Previous Week Total: **₹{format_amount(committed_previous_week)}**")
-        st.markdown(f"Delta: **₹{format_amount(committed_delta)}**")
+    if uploaded_file:
+        # Read the uploaded Excel file
+        excel_file = pd.ExcelFile(uploaded_file)
 
-    # Upside Data KPI
-    with col2:
-        st.markdown("### Upside Data")
-        st.markdown(f"**₹{format_amount(upside_current_week)}**")
-        st.markdown(f"Current Week Total: **₹{format_amount(upside_current_week)}**")
-        st.markdown(f"Previous Week Total: **₹{format_amount(upside_previous_week)}**")
-        st.markdown(f"Delta: **₹{format_amount(upside_delta)}**")
+        # Show all available sheet names
+        sheet_names = excel_file.sheet_names
+        st.write("Available Sheets:", sheet_names)
 
-    # Total KPI
-    with col3:
-        total_current_week = committed_current_week + upside_current_week
-        total_previous_week = committed_previous_week + upside_previous_week
-        total_delta = total_current_week - total_previous_week
+        # Ask the user to select a sheet for current week and previous week
+        selected_current_sheet = st.selectbox("Select Current Week Sheet", sheet_names, key="current_week")
+        selected_previous_sheet = st.selectbox("Select Previous Week Sheet", sheet_names, key="previous_week")
+
+        # Load the selected sheets into DataFrames
+        df_current = pd.read_excel(uploaded_file, sheet_name=selected_current_sheet)
+        df_previous = pd.read_excel(uploaded_file, sheet_name=selected_previous_sheet)
+
+        # Clean column names to remove extra spaces
+        df_current.columns = df_current.columns.str.strip()
+        df_previous.columns = df_previous.columns.str.strip()
+
+        # Store the data in session state
+        st.session_state.df_current = df_current
+        st.session_state.df_previous = df_previous
+
+        # Display the first few rows of the selected sheets for preview
+        st.write(f"Current Week Data from {selected_current_sheet}:")
+        st.dataframe(df_current.head())
         
-        st.markdown("### Overall Committed Data (Committed + Upside)")
-        st.markdown(f"**₹{format_amount(total_current_week)}**")
-        st.markdown(f"Current Week Total: **₹{format_amount(total_current_week)}**")
-        st.markdown(f"Previous Week Total: **₹{format_amount(total_previous_week)}**")
-        st.markdown(f"Delta: **₹{format_amount(total_delta)}**")
+        st.write(f"Previous Week Data from {selected_previous_sheet}:")
+        st.dataframe(df_previous.head())
+
+        return df_current, df_previous
+    else:
+        st.warning("Please upload a file to proceed.")
+        return None, None
+
+# Function to display the dashboard with metrics
+def display_dashboard():
+    if 'df_current' not in st.session_state or 'df_previous' not in st.session_state:
+        st.warning("Please upload the data first!")
+        return
+
+    df_current = st.session_state.df_current
+    df_previous = st.session_state.df_previous
+
+    st.title("Sales Dashboard")
+
+    # Check if 'Committed for the Month' exists in the data
+    if 'Committed for the Month' in df_current.columns:
+        committed_current_week = df_current['Committed for the Month'].sum()
+    else:
+        st.warning("'Committed for the Month' column not found in current week data")
+        committed_current_week = 0
+
+    if 'Committed for the Month' in df_previous.columns:
+        committed_previous_week = df_previous['Committed for the Month'].sum()
+    else:
+        st.warning("'Committed for the Month' column not found in previous week data")
+        committed_previous_week = 0
+
+    committed_delta = committed_current_week - committed_previous_week
+
+    # Create KPI Card for Committed Data
+    with st.container():
+        st.markdown(f"""
+            <div class="metric-container">
+                <div class="card">
+                    <div class="metric-label">Committed Data (Current Week)</div>
+                    <div class="metric-value">₹{committed_current_week / 100000:.0f}L</div>
+                    <div class="metric-label">Current Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Committed Data (Previous Week)</div>
+                    <div class="metric-value">₹{committed_previous_week / 100000:.0f}L</div>
+                    <div class="metric-label">Previous Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Delta</div>
+                    <div class="metric-value {'delta-positive' if committed_delta > 0 else 'delta-negative'}">₹{committed_delta / 100000:.0f}L</div>
+                    <div class="metric-label">Change</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
 
 def main():
-    # Load the data
-    df_current, df_previous = load_data()
+    page = st.sidebar.radio("Select Page", ["Data Input", "Dashboard"])
 
-    if df_current.empty or df_previous.empty:
-        st.error("Please upload the data for both Current Week and Previous Week.")
-        return
-    
-    # Calculate KPI
-    committed_current_week, committed_previous_week, committed_delta, upside_current_week, upside_previous_week, upside_delta = calculate_kpi(df_current, df_previous)
-
-    # Display KPI metrics
-    display_kpi(committed_current_week, committed_previous_week, committed_delta, upside_current_week, upside_previous_week, upside_delta)
+    if page == "Data Input":
+        display_data_input()
+    elif page == "Dashboard":
+        display_dashboard()
 
 if __name__ == "__main__":
     main()
