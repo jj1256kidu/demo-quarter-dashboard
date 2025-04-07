@@ -16,6 +16,13 @@ def get_totals(df, status_type):
     total = filtered_data['Amount'].sum()
     return total
 
+# Function to clean and preprocess Sales Owner column
+def clean_sales_owner_column(df):
+    # Strip any leading/trailing whitespace and replace NaN values with a placeholder (e.g., 'Unknown')
+    df['Sales Owner'] = df['Sales Owner'].str.strip()
+    df['Sales Owner'] = df['Sales Owner'].fillna('Unknown')
+    return df
+
 # Function to render the sales cards
 def display_sales_cards(df_current, df_previous):
     # Committed Data
@@ -59,7 +66,11 @@ def display_sales_cards(df_current, df_previous):
 
 # Function to generate the table view for Sales Owners and their data
 def display_sales_owner_table(df_current, df_previous):
-    # Extract sales owner names
+    # Clean Sales Owner columns to handle NaN and strip values
+    df_current = clean_sales_owner_column(df_current)
+    df_previous = clean_sales_owner_column(df_previous)
+
+    # Extract sales owner names (after cleaning)
     sales_owners = sorted(set(df_current["Sales Owner"].unique()) | set(df_previous["Sales Owner"].unique()))
 
     data = []
