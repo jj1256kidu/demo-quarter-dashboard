@@ -39,6 +39,11 @@ def display_committed_for_month(df_current, df_previous):
     # Calculate delta
     df["Delta"] = df["Current Week"] - df["Previous Week"]
 
+    # Divide by 10^5 and round the values to integers
+    df["Current Week"] = (df["Current Week"] / 1e5).round(0).astype(int)
+    df["Previous Week"] = (df["Previous Week"] / 1e5).round(0).astype(int)
+    df["Delta"] = (df["Delta"] / 1e5).round(0).astype(int)
+
     # Display the table with Streamlit
     st.dataframe(df, use_container_width=True)
 
