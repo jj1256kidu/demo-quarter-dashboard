@@ -55,11 +55,15 @@ if uploaded_file:
             for col in df_summary.columns[1:]:
                 df_summary[col] = df_summary[col].astype(int)
 
-            # Sort Sales Owner alphabetically
-            df_summary = df_summary.sort_values(by="Sales Owner")
+            # Sort Sales Owners
+            df_summary = df_summary.sort_values(by="Sales Owner").reset_index(drop=True)
+
+            # Add Serial Number
+            df_summary.insert(0, "S. No.", range(1, len(df_summary) + 1))
 
             # Add Total row
             totals = {
+                "S. No.": "",
                 "Sales Owner": "🔢 Total",
                 f"{label} (Current Week)": df_summary[f"{label} (Current Week)"].sum(),
                 f"{label} (Previous Week)": df_summary[f"{label} (Previous Week)"].sum(),
@@ -76,19 +80,29 @@ if uploaded_file:
 
         with col1:
             st.markdown("### 🧾 Commitment Comparison (in ₹ Lakhs)")
-            st.dataframe(commitment_df.style.format({
-                "Committed (Current Week)": "{:,}",
-                "Committed (Previous Week)": "{:,}",
-                "Δ Committed": "{:+,}"
-            }), use_container_width=True)
+            st.dataframe(
+                commitment_df.style
+                    .apply(lambda row: ['font-weight: bold' if row['Sales Owner'] == '🔢 Total' else '' for _ in row], axis=1)
+                    .format({
+                        "Committed (Current Week)": "{:,}",
+                        "Committed (Previous Week)": "{:,}",
+                        "Δ Committed": "{:+,}"
+                    }),
+                use_container_width=True
+            )
 
         with col2:
             st.markdown("### 🔁 Upside Comparison (in ₹ Lakhs)")
-            st.dataframe(upside_df.style.format({
-                "Upside (Current Week)": "{:,}",
-                "Upside (Previous Week)": "{:,}",
-                "Δ Upside": "{:+,}"
-            }), use_container_width=True)
+            st.dataframe(
+                upside_df.style
+                    .apply(lambda row: ['font-weight: bold' if row['Sales Owner'] == '🔢 Total' else '' for _ in row], axis=1)
+                    .format({
+                        "Upside (Current Week)": "{:,}",
+                        "Upside (Previous Week)": "{:,}",
+                        "Δ Upside": "{:+,}"
+                    }),
+                use_container_width=True
+            )
 
     except Exception as e:
         st.error(f"⚠️ Error: {e}")
