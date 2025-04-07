@@ -118,8 +118,8 @@ elif page == "📊 Quarter Summary Dashboard":
     closed_table = add_total_row(closed_table)
     closed_table = add_serial_numbers(closed_table)
 
-    # Display the tables side by side
-    col1, col2, col3, col4 = st.columns(4)
+    # Display the tables side by side with optimized layout
+    col1, col2, col3, col4 = st.columns([2, 2, 2, 3])  # Adjust column widths for better space utilization
 
     with col1:
         st.markdown("### 📝 Commitment Comparison (in ₹ Lakhs)")
