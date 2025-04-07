@@ -16,15 +16,9 @@ def highlight_deltas(val):
 
 if uploaded_file:
     try:
-        sheet_names = pd.ExcelFile(uploaded_file, engine='openpyxl').sheet_names
-        col1, col2 = st.columns(2)
-        with col1:
-            current_sheet = st.selectbox("📅 Select CURRENT week sheet", sheet_names)
-        with col2:
-            previous_sheet = st.selectbox("📅 Select PREVIOUS week sheet", sheet_names)
-
-        current_df = pd.read_excel(uploaded_file, sheet_name=current_sheet, engine="openpyxl")
-        previous_df = pd.read_excel(uploaded_file, sheet_name=previous_sheet, engine="openpyxl")
+        # Load fixed sheet names
+        current_df = pd.read_excel(uploaded_file, sheet_name="Raw_Data", engine="openpyxl")
+        previous_df = pd.read_excel(uploaded_file, sheet_name="PreviousWeek_Raw_Data", engine="openpyxl")
 
         current_df.columns = current_df.columns.str.strip()
         previous_df.columns = previous_df.columns.str.strip()
@@ -53,7 +47,23 @@ if uploaded_file:
         current_committed_df['Practice'] = current_committed_df['Practice'].fillna("Unknown")
         previous_committed_df['Practice'] = previous_committed_df['Practice'].fillna("Unknown")
 
-        st.markdown("#### 💾 Q1 SUMMARY – Sales Owner")
+        # Totals for top-level metrics
+        current_total = current_committed_df['Amount'].sum()
+        previous_total = previous_committed_df['Amount'].sum()
+        delta_total = current_total - previous_total
+        achievement_pct = (current_total / previous_total * 100) if previous_total != 0 else 0
+
+        st.markdown("### 📈 Q1 SUMMARY — Committed & Upside for the Month")
+        mcol1, mcol2, mcol3 = st.columns([2, 2, 1])
+        with mcol1:
+            st.metric("Overall Committed (Current Week)", f"₹{current_total:,.0f}")
+        with mcol2:
+            st.metric("Overall Committed (Previous Week)", f"₹{previous_total:,.0f}", f"₹{delta_total:,.0f}")
+        with mcol3:
+            st.metric("Achievement %", f"{achievement_pct:.0f}%")
+
+        # --- SALES OWNER SUMMARY ---
+        st.markdown("#### 💾 Sales Owner View")
         sales_grouped = pd.merge(
             current_committed_df.groupby("Sales Owner")["Amount"].sum().reset_index().rename(columns={"Amount": "Current Week"}),
             previous_committed_df.groupby("Sales Owner")["Amount"].sum().reset_index().rename(columns={"Amount": "Previous Week"}),
@@ -75,7 +85,8 @@ if uploaded_file:
                 .apply(lambda row: ['background-color: yellow; font-weight: bold;'] * len(row) if row.name == len(sales_final) - 1 else [''] * len(row), axis=1)
         )
 
-        st.markdown("#### 💾 Q1 SUMMARY – Function Overview")
+        # --- FUNCTION OVERVIEW SUMMARY ---
+        st.markdown("#### 💾 Function Overview View")
         func_grouped = pd.merge(
             current_committed_df.groupby("Practice")["Amount"].sum().reset_index().rename(columns={"Amount": "Current Week"}),
             previous_committed_df.groupby("Practice")["Amount"].sum().reset_index().rename(columns={"Amount": "Previous Week"}),
@@ -97,6 +108,7 @@ if uploaded_file:
                 .apply(lambda row: ['background-color: yellow; font-weight: bold;'] * len(row) if row.name == len(func_final) - 1 else [''] * len(row), axis=1)
         )
 
+        # --- DOWNLOAD ---
         st.markdown("### 📅 Download Summary Report")
 
         def to_excel(sales_df, func_df):
@@ -119,4 +131,4 @@ if uploaded_file:
     except Exception as e:
         st.error(f"❌ Error while processing the file: {e}")
 else:
-    st.info("📅 Please upload an Excel file with required columns and select the sheets.")
+    st.info("📅 Please upload an Excel file with sheets 'Raw_Data' and 'PreviousWeek_Raw_Data'.")
