@@ -57,6 +57,45 @@ def display_sales_cards(df_current, df_previous):
         st.markdown("### Overall Committed Data")
         st.metric(label="Total (Current Week)", value=f"₹ {overall_committed_current/1e5:.1f}L", delta=f"₹ {overall_committed_delta/1e5:.1f}L")
 
+# Function to generate the table view for Sales Owners and their data
+def display_sales_owner_table(df_current, df_previous):
+    # Extract sales owner names
+    sales_owners = sorted(set(df_current["Sales Owner"].unique()) | set(df_previous["Sales Owner"].unique()))
+
+    data = []
+
+    # Loop through each sales owner and calculate the totals
+    for owner in sales_owners:
+        committed_current = get_totals(df_current[df_current['Sales Owner'] == owner], "Committed for the Month")
+        committed_previous = get_totals(df_previous[df_previous['Sales Owner'] == owner], "Committed for the Month")
+        committed_delta = committed_current - committed_previous
+
+        upside_current = get_totals(df_current[df_current['Sales Owner'] == owner], "Upside for the Month")
+        upside_previous = get_totals(df_previous[df_previous['Sales Owner'] == owner], "Upside for the Month")
+        upside_delta = upside_current - upside_previous
+
+        closed_won_current = get_totals(df_current[df_current['Sales Owner'] == owner], "Closed Won")
+        closed_won_previous = get_totals(df_previous[df_previous['Sales Owner'] == owner], "Closed Won")
+        closed_won_delta = closed_won_current - closed_won_previous
+
+        overall_committed_current = committed_current + closed_won_current
+        overall_committed_previous = committed_previous + closed_won_previous
+        overall_committed_delta = overall_committed_current - overall_committed_previous
+
+        # Append data
+        data.append({
+            "Sales Owner": owner,
+            "Overall Committed (Current Week)": f"₹ {overall_committed_current/1e5:.1f}L",
+            "Overall Committed (Previous Week)": f"₹ {overall_committed_previous/1e5:.1f}L",
+            "Delta (Committed)": f"₹ {overall_committed_delta/1e5:.1f}L",
+        })
+
+    # Create a DataFrame for displaying the table
+    df_table = pd.DataFrame(data)
+
+    st.markdown("### Sales Owner Comparison")
+    st.dataframe(df_table, use_container_width=True)
+
 # Streamlit Application
 def main():
     st.title("Sales Dashboard")
@@ -67,6 +106,7 @@ def main():
     if uploaded_file is not None:
         df_current, df_previous = load_data(uploaded_file)
         display_sales_cards(df_current, df_previous)
+        display_sales_owner_table(df_current, df_previous)
 
 if __name__ == "__main__":
     main()
