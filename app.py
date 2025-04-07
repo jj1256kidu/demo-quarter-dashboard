@@ -12,11 +12,12 @@ st.set_page_config(
 # Custom CSS for modern design
 st.markdown("""
     <style>
-        /* Add your CSS styling here for modern design */
+        /* Flexbox layout for consistent card sizes */
         .metric-container {
             display: flex;
             justify-content: space-evenly;
             margin-top: 40px;
+            flex-wrap: wrap;
         }
         .card {
             background: #2C3E50;
@@ -25,6 +26,12 @@ st.markdown("""
             box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
             text-align: center;
             margin: 15px;
+            flex: 1;
+            min-width: 250px; /* Ensure consistent card width */
+            min-height: 250px; /* Ensure consistent card height */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
         .metric-label {
             font-size: 1.2em;
@@ -35,6 +42,7 @@ st.markdown("""
             font-size: 3.5em;
             color: #FFFFFF;
             font-weight: 800;
+            line-height: 1.1;
         }
         .delta-positive {
             color: #2ECC71;
@@ -42,6 +50,27 @@ st.markdown("""
         .delta-negative {
             color: #E74C3C;
         }
+
+        /* Delta Box Styling */
+        .delta-box {
+            background: #34495E;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+            font-size: 2.5em;
+            color: #FFFFFF;
+            font-weight: 800;
+        }
+
+        /* Responsive Card Layout */
+        @media (max-width: 768px) {
+            .metric-container {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
     </style>
 """, unsafe_allow_html=True)
 
@@ -196,12 +225,12 @@ def display_dashboard():
         st.markdown(f"""
             <div class="metric-container">
                 <div class="card">
-                    <div class="metric-label">Closed Won Data (Current Week)</div>
+                    <div class="metric-label">Closed Won (Current Week)</div>
                     <div class="metric-value">₹{closed_won_current_week / 100000:.0f}L</div>
                     <div class="metric-label">Current Week Total</div>
                 </div>
                 <div class="card">
-                    <div class="metric-label">Closed Won Data (Previous Week)</div>
+                    <div class="metric-label">Closed Won (Previous Week)</div>
                     <div class="metric-value">₹{closed_won_previous_week / 100000:.0f}L</div>
                     <div class="metric-label">Previous Week Total</div>
                 </div>
