@@ -99,6 +99,29 @@ def display_dashboard():
 
     st.title("Sales Dashboard")
 
+    # Filter options for Sales Owner, Quarter, and Practice
+    sales_owners = sorted(df_current['Sales Owner'].dropna().unique().tolist())
+    selected_sales_owner = st.selectbox("Select Sales Owner", ["All Sales Owners"] + sales_owners)
+
+    quarters = ['Q1', 'Q2', 'Q3', 'Q4']
+    selected_quarter = st.selectbox("Select Quarter", ["All Quarters"] + quarters)
+
+    practices = sorted(df_current['Practice'].dropna().unique().tolist())
+    selected_practice = st.selectbox("Select Practice", ["All Practices"] + practices)
+
+    # Apply filters based on selections
+    if selected_sales_owner != "All Sales Owners":
+        df_current = df_current[df_current['Sales Owner'] == selected_sales_owner]
+        df_previous = df_previous[df_previous['Sales Owner'] == selected_sales_owner]
+
+    if selected_quarter != "All Quarters":
+        df_current = df_current[df_current['Quarter'] == selected_quarter]
+        df_previous = df_previous[df_previous['Quarter'] == selected_quarter]
+
+    if selected_practice != "All Practices":
+        df_current = df_current[df_current['Practice'] == selected_practice]
+        df_previous = df_previous[df_previous['Practice'] == selected_practice]
+
     # Filter the data based on "Status" column to check for Committed, Upside, and Closed Won data
     committed_current_week = df_current[df_current['Status'] == "Committed for the Month"]['Amount'].sum()
     upside_current_week = df_current[df_current['Status'] == "Upside for the Month"]['Amount'].sum()
