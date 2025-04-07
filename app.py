@@ -61,6 +61,9 @@ def display_sales_owner_table(df_current, df_previous, selected_status, selected
     df["∆ Committed"] = df["Committed (Current Week)"] - df["Committed (Previous Week)"]
     df["∆ Upside"] = df["Upside (Current Week)"] - df["Upside (Previous Week)"]
     df["∆ Closed Won"] = df["Closed Won (Current Week)"] - df["Closed Won (Previous Week)"]
+    
+    # Fill missing values with 0 for better display
+    df.fillna(0, inplace=True)
 
     # Style the dataframe based on deltas
     df = df.style.applymap(highlight_delta, subset=["∆ Committed", "∆ Upside", "∆ Closed Won"])
