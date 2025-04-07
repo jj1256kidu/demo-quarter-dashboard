@@ -60,7 +60,15 @@ if uploaded_file:
         delta_total = current_total - previous_total
         achievement_pct = (current_total / previous_total * 100) if previous_total != 0 else 0
 
-        st.markdown("### 📈 Q1 SUMMARY — Committed & Upside for the Month")
+        st.markdown("""
+### 🧾 Q1 SUMMARY — Committed & Upside for the Month  
+This section compares the **Committed** data from:
+- ✅ `Raw_Data` (Current Week)
+- 📁 `PreviousWeek_Raw_Data` (Previous Week)
+
+**🟨 Yellow Row** = Total  
+**🔴 Red Text** = Negative change
+""")
         mcol1, mcol2, mcol3 = st.columns([2, 2, 1])
         with mcol1:
             st.metric("Overall Committed (Current Week)", f"₹{current_total:,.0f}")
@@ -70,7 +78,7 @@ if uploaded_file:
             st.metric("Achievement %", f"{achievement_pct:.0f}%")
 
         # --- SALES OWNER SUMMARY ---
-        st.markdown("#### 💾 Sales Owner View")
+        st.markdown("#### 👤 Sales Owner (Q1) — Weekly Comparison")
         sales_grouped = pd.merge(
             current_committed_df.groupby("Sales Owner")["Amount"].sum().reset_index().rename(columns={"Amount": "Current Week"}),
             previous_committed_df.groupby("Sales Owner")["Amount"].sum().reset_index().rename(columns={"Amount": "Previous Week"}),
@@ -93,7 +101,7 @@ if uploaded_file:
         )
 
         # --- FUNCTION OVERVIEW SUMMARY ---
-        st.markdown("#### 💾 Function Overview View")
+        st.markdown("#### 🏢 Function Overview (Practice) — Weekly Comparison")
         func_grouped = pd.merge(
             current_committed_df.groupby("Practice")["Amount"].sum().reset_index().rename(columns={"Amount": "Current Week"}),
             previous_committed_df.groupby("Practice")["Amount"].sum().reset_index().rename(columns={"Amount": "Previous Week"}),
