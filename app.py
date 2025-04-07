@@ -71,17 +71,19 @@ def main():
 
         # Filter options for status (Committed or Upside) and quarter
         status_options = ["Committed for the Month", "Upside for the Month", "Closed Won"]
-        selected_status = st.selectbox("Select Status", status_options)
-
+        
+        # Add unique keys for each selectbox
+        selected_status = st.selectbox("Select Status", status_options, key="status_selectbox")
+        
         # Quarter filter (including "All" option to show all quarters)
         quarters = ["All"] + sorted(df_current["Quarter"].unique().tolist())
-
+        
         # Use st.columns to place filters in the same row
         col1, col2 = st.columns([2, 1])
         with col1:
-            selected_status = st.selectbox("Select Status", status_options)
+            selected_status = st.selectbox("Select Status", status_options, key="status_selectbox")
         with col2:
-            selected_quarter = st.selectbox("Select Quarter", quarters)
+            selected_quarter = st.selectbox("Select Quarter", quarters, key="quarter_selectbox")
 
         # Calculating total for each category (Committed, Upside, Closed Won)
         def calculate_totals(df_current, df_previous, selected_status, selected_quarter):
