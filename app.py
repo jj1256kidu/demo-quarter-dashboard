@@ -13,12 +13,12 @@ try:
         st.session_state.sheet_names = []
 
     # Sidebar navigation
-    page = st.sidebar.radio("Navigate", ["F4C2 Data Input", "F4CA Quarter Summary Dashboard"])
+    page = st.sidebar.radio("Navigate", ["📂 Data Input", "📊 Quarter Summary Dashboard"])
 
     # Page 1: Data Input
-    if page == "F4C2 Data Input":
-        st.title("F4C8 Weekly Commitment Comparison Tool")
-        st.markdown("#### F4C1 Upload Excel file")
+    if page == "📂 Data Input":
+        st.title("📈 Weekly Commitment Comparison Tool")
+        st.markdown("#### 📁 Upload Excel file")
 
         uploaded_file = st.file_uploader("Drag and drop file here", type=["xlsx"])
         if uploaded_file:
@@ -32,8 +32,8 @@ try:
             sheet2 = st.selectbox("Select Previous Week Sheet", st.session_state.sheet_names, key="previous_sheet")
 
     # Page 2: Quarter Summary Dashboard
-    elif page == "F4CA Quarter Summary Dashboard":
-        st.title("F4CA Quarter Summary Dashboard")
+    elif page == "📊 Quarter Summary Dashboard":
+        st.title("📊 Quarter Summary Dashboard")
 
         if not st.session_state.uploaded_file:
             st.warning("⚠️ Please upload a file in the 'Data Input' page.")
@@ -57,12 +57,10 @@ try:
 
         # Filter options
         quarters = sorted((set(df_current["Quarter"].unique()) | set(df_previous["Quarter"].unique())) - {"nan", "None", ""})
-        quarters.insert(0, "All")
         selected_quarter = st.selectbox("Select Quarter", quarters)
 
         sales_owners = sorted((set(df_current["Sales Owner"].unique()) | set(df_previous["Sales Owner"].unique())) - {"nan", "None", ""})
-        sales_owners.insert(0, "All")
-        selected_owner = st.selectbox("Select Sales Owner", sales_owners)
+        selected_owner = st.selectbox("Select Sales Owner", ["All"] + sales_owners)
 
         # Filter based on quarter and (optional) sales owner
         def filter_data(df, status_type):
@@ -94,11 +92,6 @@ try:
             df = df.round(0)
             return df
 
-        closed_table = prepare_table(df_closed_current, df_closed_previous, "Closed Won")
-
-        for col in closed_table.columns[1:]:
-            closed_table[col] = (closed_table[col] / 1e5).astype(int)
-
         def add_total_row(df, label="\U0001F4C8 Total"):
             total = df.drop(columns=["S. No."], errors="ignore").sum(numeric_only=True)
             total_row = pd.DataFrame([[label] + total.tolist()], columns=["Sales Owner"] + list(total.index))
@@ -110,11 +103,36 @@ try:
             df.loc[df["Sales Owner"] == "\U0001F4C8 Total", "S. No."] = ""
             return df
 
+        commit_table = prepare_table(df_commit_current, df_commit_previous, "Committed")
+        upside_table = prepare_table(df_upside_current, df_upside_previous, "Upside")
+        closed_table = prepare_table(df_closed_current, df_closed_previous, "Closed Won")
+
+        for table in [commit_table, upside_table, closed_table]:
+            for col in table.columns[1:]:
+                table[col] = (table[col] / 1e5).astype(int)
+            table = add_total_row(table)
+            table = add_serial_numbers(table)
+
+        commit_table = add_total_row(commit_table)
+        commit_table = add_serial_numbers(commit_table)
+        upside_table = add_total_row(upside_table)
+        upside_table = add_serial_numbers(upside_table)
         closed_table = add_total_row(closed_table)
         closed_table = add_serial_numbers(closed_table)
 
-        st.markdown("### \U00002705 Closed Won Comparison (in ₹ Lakhs)")
-        st.dataframe(closed_table, use_container_width=True)
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.markdown("### 📝 Commitment Comparison (in ₹ Lakhs)")
+            st.dataframe(commit_table, use_container_width=True)
+
+        with col2:
+            st.markdown("### 🔁 Upside Comparison (in ₹ Lakhs)")
+            st.dataframe(upside_table, use_container_width=True)
+
+        with col3:
+            st.markdown("### ✅ Closed Won Comparison (in ₹ Lakhs)")
+            st.dataframe(closed_table, use_container_width=True)
 
 except ModuleNotFoundError as e:
     print("Required module not found:", e)
