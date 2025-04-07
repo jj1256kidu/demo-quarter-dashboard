@@ -58,15 +58,10 @@ try:
         quarters = sorted((set(df_current["Quarter"].unique()) | set(df_previous["Quarter"].unique())) - {"nan", "None", ""})
         selected_quarter = st.selectbox("Select Quarter", quarters)
 
-        sales_owners = sorted((set(df_current["Sales Owner"].unique()) | set(df_previous["Sales Owner"].unique())) - {"nan", "None", ""})
-        selected_owner = st.selectbox("Select Sales Owner", ["All"] + sales_owners)
-
-        # Filter based on quarter and (optional) sales owner
+        # Filter based on quarter
         def filter_data(df, status_type):
             if selected_quarter != "All":
                 df = df[df["Quarter"] == selected_quarter]
-            if selected_owner != "All":
-                df = df[df["Sales Owner"] == selected_owner]
             return df[df["Status"] == status_type]
 
         df_commit_current = filter_data(df_current, "Committed for the Month")
@@ -80,9 +75,9 @@ try:
         def prepare_commitment_table(cur, prev):
             cur = agg_amount(cur).rename(columns={"Amount": "Amount (Current Week)"})
             prev = agg_amount(prev).rename(columns={"Amount": "Amount (Previous Week)"})
-            df = pd.merge(cur, prev, on="Sales Owner", how="left").fillna(0)
+            df = pd.merge(cur, prev, on="Sales Owner", how="outer").fillna(0)  # Ensure we include all sales owners
             df["∆ Committed"] = df["Amount (Current Week)"] - df["Amount (Previous Week)"]
-            df = df[["Sales Owner", "Amount (Current Week)", "Amount (Previous Week)", "∆ Committed"]]  # Show only required columns
+            df = df[["Sales Owner", "Amount (Current Week)", "Amount (Previous Week)", "∆ Committed"]]  # Keep the sales owner
             return df
 
         commit_table = prepare_commitment_table(df_commit_current, df_commit_previous)
