@@ -33,10 +33,7 @@ def display_metrics(df_current, df_previous, status, label):
     delta = total_current - total_previous
 
     # Display the metrics for the selected status
-    st.markdown(f"### 📝 {label}")
-    st.markdown(f"**Current Week Total**: ₹ {total_current:,.0f} Lakh")
-    st.markdown(f"**Previous Week Total**: ₹ {total_previous:,.0f} Lakh")
-    st.markdown(f"**Delta**: ₹ {delta:,.0f} Lakh")
+    return total_current, total_previous, delta
 
 # Function to display the table with Sales Owner and their data for each status (Committed, Upside, Closed Won, Overall Committed)
 def display_data(df_current, df_previous, status, label):
@@ -68,10 +65,6 @@ def display_data(df_current, df_previous, status, label):
     # Apply custom CSS to reduce height and stretch the table, center-align, and remove width issues
     st.markdown("""
         <style>
-            .streamlit-expanderHeader {
-                font-size: 20px;
-                font-weight: bold;
-            }
             .stDataFrame {
                 display: flex;
                 justify-content: center;
@@ -99,8 +92,7 @@ def display_data(df_current, df_previous, status, label):
         </style>
     """, unsafe_allow_html=True)
 
-    # Display the heading and the table with Streamlit (centered)
-    st.markdown(f"### 📝 {label}")
+    # Display the table with Streamlit (centered)
     st.dataframe(df.style.set_table_attributes('class="stTable"'), use_container_width=True)
 
 # Streamlit app
@@ -119,20 +111,29 @@ def main():
         df_current = preprocess(df_current)
         df_previous = preprocess(df_previous)
 
-        # Display the metrics and data for Committed Data
-        display_metrics(df_current, df_previous, "Committed for the Month", "Committed Data")
+        # Display KPIs for Committed, Upside, Closed Won, and Overall Committed
+        st.markdown("### 📝 Key Metrics (KPI)")
+
+        # Committed Data Metrics
+        total_current_commit, total_previous_commit, delta_commit = display_metrics(df_current, df_previous, "Committed for the Month", "Committed Data")
+        st.markdown(f"**Committed Data**: ₹ {total_current_commit:,.0f} Lakh (Current Week), ₹ {total_previous_commit:,.0f} Lakh (Previous Week), Δ ₹ {delta_commit:,.0f} Lakh")
+
+        # Upside Data Metrics
+        total_current_upside, total_previous_upside, delta_upside = display_metrics(df_current, df_previous, "Upside for the Month", "Upside Data")
+        st.markdown(f"**Upside Data**: ₹ {total_current_upside:,.0f} Lakh (Current Week), ₹ {total_previous_upside:,.0f} Lakh (Previous Week), Δ ₹ {delta_upside:,.0f} Lakh")
+
+        # Closed Won Data Metrics
+        total_current_won, total_previous_won, delta_won = display_metrics(df_current, df_previous, "Closed Won", "Closed Won Data")
+        st.markdown(f"**Closed Won Data**: ₹ {total_current_won:,.0f} Lakh (Current Week), ₹ {total_previous_won:,.0f} Lakh (Previous Week), Δ ₹ {delta_won:,.0f} Lakh")
+
+        # Overall Committed Data Metrics (Committed + Closed Won)
+        total_current_overall, total_previous_overall, delta_overall = display_metrics(df_current, df_previous, "Committed for the Month", "Overall Committed Data (Committed + Closed Won)")
+        st.markdown(f"**Overall Committed Data**: ₹ {total_current_overall:,.0f} Lakh (Current Week), ₹ {total_previous_overall:,.0f} Lakh (Previous Week), Δ ₹ {delta_overall:,.0f} Lakh")
+
+        # Display the tables for Committed Data
         display_data(df_current, df_previous, "Committed for the Month", "Committed Data")
-
-        # Display the metrics and data for Upside Data
-        display_metrics(df_current, df_previous, "Upside for the Month", "Upside Data")
         display_data(df_current, df_previous, "Upside for the Month", "Upside Data")
-
-        # Display the metrics and data for Closed Won Data
-        display_metrics(df_current, df_previous, "Closed Won", "Closed Won Data")
         display_data(df_current, df_previous, "Closed Won", "Closed Won Data")
-
-        # Display the metrics and data for Overall Committed Data (Committed + Closed Won)
-        display_metrics(df_current, df_previous, "Committed for the Month", "Overall Committed Data (Committed + Closed Won)")
         display_data(df_current, df_previous, "Committed for the Month", "Overall Committed Data (Committed + Closed Won)")
 
 if __name__ == "__main__":
