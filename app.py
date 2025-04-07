@@ -103,6 +103,16 @@ try:
         overall_table_previous = pd.concat([df_commit_previous, df_closed_previous], ignore_index=True)
         overall_table = prepare_table(overall_table, overall_table_previous, "Committed + Closed Won")
 
+        # Remove rows where Sales Owner is 'nan'
+        def remove_nan_sales_owner(df):
+            return df[df["Sales Owner"].str.lower() != "nan"]
+
+        # Apply the removal function
+        commit_table = remove_nan_sales_owner(commit_table)
+        upside_table = remove_nan_sales_owner(upside_table)
+        closed_table = remove_nan_sales_owner(closed_table)
+        overall_table = remove_nan_sales_owner(overall_table)
+
         # Create columns for layout
         col1, col2, col3, col4 = st.columns(4)
 
