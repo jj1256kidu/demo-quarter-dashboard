@@ -71,25 +71,55 @@ try:
 
         df_commit_current = filter_data(df_current, "Committed for the Month")
         df_commit_previous = filter_data(df_previous, "Committed for the Month")
+        df_upside_current = filter_data(df_current, "Upside for the Month")
+        df_upside_previous = filter_data(df_previous, "Upside for the Month")
+        df_closed_current = filter_data(df_current, "Closed Won")
+        df_closed_previous = filter_data(df_previous, "Closed Won")
 
         # Aggregation
         def agg_amount(df):
             return df.groupby("Sales Owner")["Amount"].sum().reset_index()
 
-        # Prepare the table
-        def prepare_commitment_table(cur, prev):
-            cur = agg_amount(cur).rename(columns={"Amount": "Amount (Current Week)"})
-            prev = agg_amount(prev).rename(columns={"Amount": "Amount (Previous Week)"})
+        def prepare_table(cur, prev, value_name):
+            cur = agg_amount(cur).rename(columns={"Amount": f"Amount (Current Week)"})
+            prev = agg_amount(prev).rename(columns={"Amount": f"Amount (Previous Week)"})
             df = pd.merge(cur, prev, on="Sales Owner", how="left").fillna(0)
-            df["∆ Committed"] = df["Amount (Current Week)"] - df["Amount (Previous Week)"]
-            df = df[["Amount (Current Week)", "Amount (Previous Week)", "∆ Committed"]]  # Removed Sales Owner column
+            df[f"∆ {value_name}"] = df[f"Amount (Current Week)"] - df[f"Amount (Previous Week)"]
+            df = df[["Sales Owner", f"Amount (Current Week)", f"Amount (Previous Week)", f"∆ {value_name}"]]  # Remove S. No.
+            df = df.drop(columns=["Sales Owner"])  # Remove the Sales Owner column for compact view
+            df = df.round(0)
             return df
 
-        commit_table = prepare_commitment_table(df_commit_current, df_commit_previous)
+        # Prepare tables for Commitment, Upside, Closed Won
+        commit_table = prepare_table(df_commit_current, df_commit_previous, "Committed")
+        upside_table = prepare_table(df_upside_current, df_upside_previous, "Upside")
+        closed_table = prepare_table(df_closed_current, df_closed_previous, "Closed Won")
 
-        # Display commitment table
-        st.markdown("### 📊 Commitment Comparison (in ₹ Lakhs)")
-        st.dataframe(commit_table, use_container_width=True)
+        # Create columns for layout
+        col1, col2, col3, col4 = st.columns(4)
+
+        # Display Commitment Table
+        with col1:
+            st.markdown("### 📝 Commitment Comparison (in ₹ Lakhs)")
+            st.dataframe(commit_table, use_container_width=True)
+
+        # Display Upside Table
+        with col2:
+            st.markdown("### 🔁 Upside Comparison (in ₹ Lakhs)")
+            st.dataframe(upside_table, use_container_width=True)
+
+        # Display Closed Won Table
+        with col3:
+            st.markdown("### ✅ Closed Won Comparison (in ₹ Lakhs)")
+            st.dataframe(closed_table, use_container_width=True)
+
+        # Display Overall Committed + Closed Won Table
+        overall_table = prepare_table(df_commit_current.append(df_closed_current, ignore_index=True),
+                                      df_commit_previous.append(df_closed_previous, ignore_index=True),
+                                      "Committed + Closed Won")
+        with col4:
+            st.markdown("### 📊 Overall Committed + Closed Won (in ₹ Lakhs)")
+            st.dataframe(overall_table, use_container_width=True)
 
 except ModuleNotFoundError as e:
     print("Required module not found:", e)
