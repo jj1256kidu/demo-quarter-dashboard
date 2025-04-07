@@ -9,25 +9,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for a modern, sleek look
+# Custom CSS for modern design
 st.markdown("""
     <style>
-        /* Main background styling */
-        .main {
-            background-color: #1E1E1E;
-            color: white;
+        /* Add your CSS styling here for modern design */
+        .metric-container {
+            display: flex;
+            justify-content: space-evenly;
+            margin-top: 40px;
         }
-
-        /* Header Styling */
-        .header {
-            font-size: 2.5em;
-            font-weight: 700;
-            color: #FFFFFF;
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        /* Card styling for KPIs */
         .card {
             background: #2C3E50;
             padding: 20px;
@@ -36,53 +26,26 @@ st.markdown("""
             text-align: center;
             margin: 15px;
         }
-
-        /* Metric label inside the card */
         .metric-label {
             font-size: 1.2em;
             color: #BDC3C7;
             margin-bottom: 10px;
         }
-
-        /* Metric value inside the card */
         .metric-value {
             font-size: 3.5em;
             color: #FFFFFF;
             font-weight: 800;
         }
-
-        /* Delta text styling */
         .delta-positive {
             color: #2ECC71;
         }
-
         .delta-negative {
             color: #E74C3C;
-        }
-
-        /* Metric container for layout */
-        .metric-container {
-            display: flex;
-            justify-content: space-evenly;
-            margin-top: 40px;
-        }
-
-        .metric-container .card {
-            flex: 1;
-        }
-
-        /* Info box styling */
-        .info-box {
-            background-color: rgba(74, 144, 226, 0.1);
-            border-left: 4px solid #4A90E2;
-            padding: 15px;
-            border-radius: 4px;
-            margin: 10px 0;
         }
     </style>
 """, unsafe_allow_html=True)
 
-# Function to display the sheet selection and preview data
+# Function to display data input (upload and preview)
 def display_data_input():
     st.title("Data Input")
 
@@ -104,6 +67,10 @@ def display_data_input():
         # Load the selected sheets into DataFrames
         df_current = pd.read_excel(uploaded_file, sheet_name=selected_current_sheet)
         df_previous = pd.read_excel(uploaded_file, sheet_name=selected_previous_sheet)
+
+        # Clean column names to remove extra spaces
+        df_current.columns = df_current.columns.str.strip()
+        df_previous.columns = df_previous.columns.str.strip()
 
         # Store the data in session state
         st.session_state.df_current = df_current
@@ -132,10 +99,19 @@ def display_dashboard():
 
     st.title("Sales Dashboard")
 
-    # Committed for the Month Data
-    st.markdown("### 📝 Committed Data")
-    committed_current_week = df_current['Committed for the Month'].sum()  # Adjust column name based on your data
-    committed_previous_week = df_previous['Committed for the Month'].sum()  # Adjust column name based on your data
+    # Check if 'Committed for the Month' exists in the data
+    if 'Committed for the Month' in df_current.columns:
+        committed_current_week = df_current['Committed for the Month'].sum()
+    else:
+        st.warning("'Committed for the Month' column not found in current week data")
+        committed_current_week = 0
+
+    if 'Committed for the Month' in df_previous.columns:
+        committed_previous_week = df_previous['Committed for the Month'].sum()
+    else:
+        st.warning("'Committed for the Month' column not found in previous week data")
+        committed_previous_week = 0
+
     committed_delta = committed_current_week - committed_previous_week
 
     # Create KPI Card for Committed Data
@@ -159,8 +135,6 @@ def display_dashboard():
                 </div>
             </div>
         """, unsafe_allow_html=True)
-
-    # Add similar cards for Upside, Closed Won, and Overall Committed...
 
 def main():
     page = st.sidebar.radio("Select Page", ["Data Input", "Dashboard"])
