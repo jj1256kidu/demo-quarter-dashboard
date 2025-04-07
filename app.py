@@ -65,7 +65,7 @@ def display_sales_owner_table(df_current, df_previous, selected_status, selected
     # Fill missing values with 0 for better display
     df.fillna(0, inplace=True)
 
-    # Style the dataframe based on deltas
+    # Apply styling using Styler.map() instead of Styler.applymap()
     df = df.style.applymap(highlight_delta, subset=["∆ Committed", "∆ Upside", "∆ Closed Won"])
     st.dataframe(df, use_container_width=True)
 
