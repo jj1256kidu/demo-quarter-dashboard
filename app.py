@@ -20,55 +20,32 @@ def preprocess(df):
     df["Amount"] = pd.to_numeric(df["Amount"], errors="coerce").fillna(0)
     return df
 
-# Function to filter data based on selected filters
-def filter_data(df, selected_quarter, selected_sales_owner, status_type):
-    if selected_quarter != "All":
-        df = df[df["Quarter"] == selected_quarter]
-    if selected_sales_owner != "All":
-        df = df[df["Sales Owner"] == selected_sales_owner]
+# Function to filter data based on selected status
+def filter_data(df, status_type):
     return df[df["Status"] == status_type]
 
-# Function to aggregate data for each sales owner or function
+# Function to aggregate data for each sales owner
 def agg_amount(df):
     return df.groupby("Sales Owner")["Amount"].sum().reset_index()
 
 # Function to display the comparison table for sales owners
-def display_sales_owner_table(df_current, df_previous, selected_quarter, selected_sales_owner):
-    # Filter data for current and previous week
-    df_commit_current = filter_data(df_current, selected_quarter, selected_sales_owner, "Committed for the Month")
-    df_commit_previous = filter_data(df_previous, selected_quarter, selected_sales_owner, "Committed for the Month")
-    df_upside_current = filter_data(df_current, selected_quarter, selected_sales_owner, "Upside for the Month")
-    df_upside_previous = filter_data(df_previous, selected_quarter, selected_sales_owner, "Upside for the Month")
-    df_closed_current = filter_data(df_current, selected_quarter, selected_sales_owner, "Closed Won")
-    df_closed_previous = filter_data(df_previous, selected_quarter, selected_sales_owner, "Closed Won")
+def display_sales_owner_table(df_current, df_previous, selected_status):
+    # Filter data for current and previous week based on the selected status
+    df_current_filtered = filter_data(df_current, selected_status)
+    df_previous_filtered = filter_data(df_previous, selected_status)
 
     # Aggregate the data
-    df_commit_current = agg_amount(df_commit_current).rename(columns={"Amount": "Committed (Current Week)"})
-    df_commit_previous = agg_amount(df_commit_previous).rename(columns={"Amount": "Committed (Previous Week)"})
-    df_upside_current = agg_amount(df_upside_current).rename(columns={"Amount": "Upside (Current Week)"})
-    df_upside_previous = agg_amount(df_upside_previous).rename(columns={"Amount": "Upside (Previous Week)"})
-    df_closed_current = agg_amount(df_closed_current).rename(columns={"Amount": "Closed Won (Current Week)"})
-    df_closed_previous = agg_amount(df_closed_previous).rename(columns={"Amount": "Closed Won (Previous Week)"})
+    df_current_agg = agg_amount(df_current_filtered).rename(columns={"Amount": "Current Week"})
+    df_previous_agg = agg_amount(df_previous_filtered).rename(columns={"Amount": "Previous Week"})
 
-    # Merge all data
-    df = pd.merge(df_commit_current, df_commit_previous, on="Sales Owner", how="outer")
-    df = pd.merge(df, df_upside_current, on="Sales Owner", how="outer")
-    df = pd.merge(df, df_upside_previous, on="Sales Owner", how="outer")
-    df = pd.merge(df, df_closed_current, on="Sales Owner", how="outer")
-    df = pd.merge(df, df_closed_previous, on="Sales Owner", how="outer")
+    # Merge the data for current and previous week
+    df = pd.merge(df_current_agg, df_previous_agg, on="Sales Owner", how="outer").fillna(0)
 
-    # Calculate deltas
-    df["∆ Committed"] = df["Committed (Current Week)"] - df["Committed (Previous Week)"]
-    df["∆ Upside"] = df["Upside (Current Week)"] - df["Upside (Previous Week)"]
-    df["∆ Closed Won"] = df["Closed Won (Current Week)"] - df["Closed Won (Previous Week)"]
-    df["∆ Overall Committed + Closed Won (Current Week)"] = (df["Committed (Current Week)"] + df["Closed Won (Current Week)"])
-    df["∆ Overall Committed + Closed Won (Previous Week)"] = (df["Committed (Previous Week)"] + df["Closed Won (Previous Week)"])
-    df["∆ Overall Committed + Closed Won Delta"] = df["∆ Overall Committed + Closed Won (Current Week)"] - df["∆ Overall Committed + Closed Won (Previous Week)"]
-    
-    df.fillna(0, inplace=True)
+    # Calculate delta
+    df["Delta"] = df["Current Week"] - df["Previous Week"]
 
     # Apply styling to highlight deltas
-    df_styled = df.style.applymap(highlight_delta, subset=["∆ Committed", "∆ Upside", "∆ Closed Won", "∆ Overall Committed + Closed Won Delta"])
+    df_styled = df.style.applymap(highlight_delta, subset=["Delta"])
 
     # Display the table with Streamlit
     st.dataframe(df_styled, use_container_width=True)
@@ -89,15 +66,12 @@ def main():
         df_current = preprocess(df_current)
         df_previous = preprocess(df_previous)
 
-        # Filter options for quarter and sales owner
-        quarters = sorted(set(df_current["Quarter"].unique()) | set(df_previous["Quarter"].unique()))
-        selected_quarter = st.selectbox("Select Quarter", quarters)
-
-        sales_owners = sorted(set(df_current["Sales Owner"].unique()) | set(df_previous["Sales Owner"].unique()))
-        selected_sales_owner = st.selectbox("Select Sales Owner", ["All"] + sales_owners)
+        # Filter options for status (Committed or Upside)
+        status_options = ["Committed for the Month", "Upside for the Month"]
+        selected_status = st.selectbox("Select Status", status_options)
 
         # Display the sales owner comparison table
-        display_sales_owner_table(df_current, df_previous, selected_quarter, selected_sales_owner)
+        display_sales_owner_table(df_current, df_previous, selected_status)
 
 if __name__ == "__main__":
     main()
