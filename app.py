@@ -99,15 +99,23 @@ def display_dashboard():
 
     st.title("Sales Dashboard")
 
-    # Filter options for Sales Owner, Quarter, and Practice
-    sales_owners = sorted(df_current['Sales Owner'].dropna().unique().tolist())
-    selected_sales_owner = st.selectbox("Select Sales Owner", ["All Sales Owners"] + sales_owners)
+    # Filters displayed in one row
+    col1, col2, col3 = st.columns([1, 1, 1])  # Create three columns for filters
 
-    quarters = ['Q1', 'Q2', 'Q3', 'Q4']
-    selected_quarter = st.selectbox("Select Quarter", ["All Quarters"] + quarters)
+    with col1:
+        # Sales Owner Filter
+        sales_owners = sorted(df_current['Sales Owner'].dropna().unique().tolist())
+        selected_sales_owner = st.selectbox("Select Sales Owner", ["All Sales Owners"] + sales_owners)
 
-    practices = sorted(df_current['Practice'].dropna().unique().tolist())
-    selected_practice = st.selectbox("Select Practice", ["All Practices"] + practices)
+    with col2:
+        # Quarter Filter
+        quarters = ['Q1', 'Q2', 'Q3', 'Q4']
+        selected_quarter = st.selectbox("Select Quarter", ["All Quarters"] + quarters)
+
+    with col3:
+        # Practice Filter
+        practices = sorted(df_current['Practice'].dropna().unique().tolist())
+        selected_practice = st.selectbox("Select Practice", ["All Practices"] + practices)
 
     # Apply filters based on selections
     if selected_sales_owner != "All Sales Owners":
@@ -205,7 +213,7 @@ def display_dashboard():
             </div>
         """, unsafe_allow_html=True)
 
-        # Create KPI Card for Overall Committed Data (Committed + Closed Won)
+        # Create KPI Card for Overall Committed Data
         st.markdown(f"""
             <div class="metric-container">
                 <div class="card">
