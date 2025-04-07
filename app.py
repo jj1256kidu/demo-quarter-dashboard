@@ -70,7 +70,7 @@ def main():
         df_previous = preprocess(df_previous)
 
         # Filter options for status (Committed or Upside) and quarter
-        status_options = ["Committed for the Month", "Upside for the Month"]
+        status_options = ["Committed for the Month", "Upside for the Month", "Closed Won"]
         selected_status = st.selectbox("Select Status", status_options)
 
         # Quarter filter (including "All" option to show all quarters)
@@ -82,6 +82,38 @@ def main():
             selected_status = st.selectbox("Select Status", status_options)
         with col2:
             selected_quarter = st.selectbox("Select Quarter", quarters)
+
+        # Calculating total for each category (Committed, Upside, Closed Won)
+        def calculate_totals(df_current, df_previous, selected_status, selected_quarter):
+            df_current_filtered = filter_data(df_current, selected_status, selected_quarter)
+            df_previous_filtered = filter_data(df_previous, selected_status, selected_quarter)
+
+            df_current_total = agg_amount(df_current_filtered)["Amount"].sum()
+            df_previous_total = agg_amount(df_previous_filtered)["Amount"].sum()
+            delta = df_current_total - df_previous_total
+            return df_current_total, df_previous_total, delta
+
+        # Get totals for each status
+        committed_current, committed_previous, committed_delta = calculate_totals(df_current, df_previous, "Committed for the Month", selected_quarter)
+        upside_current, upside_previous, upside_delta = calculate_totals(df_current, df_previous, "Upside for the Month", selected_quarter)
+        closed_won_current, closed_won_previous, closed_won_delta = calculate_totals(df_current, df_previous, "Closed Won", selected_quarter)
+
+        # Overall Committed + Closed Won
+        overall_committed_current = committed_current + closed_won_current
+        overall_committed_previous = committed_previous + closed_won_previous
+        overall_committed_delta = overall_committed_current - overall_committed_previous
+
+        # Display the totals
+        st.markdown("### 📝 Total Overview (in ₹ Lakhs)")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Committed", f"₹ {committed_current:,.0f} (Current Week)", f"₹ {committed_delta:,.0f} (Delta)")
+        with col2:
+            st.metric("Upside", f"₹ {upside_current:,.0f} (Current Week)", f"₹ {upside_delta:,.0f} (Delta)")
+        with col3:
+            st.metric("Closed Won", f"₹ {closed_won_current:,.0f} (Current Week)", f"₹ {closed_won_delta:,.0f} (Delta)")
+        with col4:
+            st.metric("Overall Committed + Closed Won", f"₹ {overall_committed_current:,.0f} (Current Week)", f"₹ {overall_committed_delta:,.0f} (Delta)")
 
         # Display the sales owner comparison table
         display_sales_owner_table(df_current, df_previous, selected_status, selected_quarter)
