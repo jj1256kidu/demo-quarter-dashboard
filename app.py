@@ -1,5 +1,5 @@
-import pandas as pd
 import streamlit as st
+import pandas as pd
 
 # Set page configuration
 st.set_page_config(layout="wide", page_title="Weekly Commitment Comparison Tool")
@@ -111,7 +111,13 @@ elif page == "📊 Quarter Summary Dashboard":
         table = add_total_row(table)
         table = add_serial_numbers(table)
 
-    # Combine the three tables into one row
+    commit_table = add_total_row(commit_table)
+    commit_table = add_serial_numbers(commit_table)
+    upside_table = add_total_row(upside_table)
+    upside_table = add_serial_numbers(upside_table)
+    closed_table = add_total_row(closed_table)
+    closed_table = add_serial_numbers(closed_table)
+
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
@@ -126,21 +132,7 @@ elif page == "📊 Quarter Summary Dashboard":
         st.markdown("### ✅ Closed Won Comparison (in ₹ Lakhs)")
         st.dataframe(closed_table, use_container_width=True)
 
-    # Overall Committed + Closed Won (Current Week)
-    overall_commit_closed = commit_table[['Sales Owner', 'Amount (Current Week)']].merge(closed_table[['Sales Owner', 'Amount (Current Week)']], on="Sales Owner")
-    overall_commit_closed['Overall Committed + Closed Won (Current Week)'] = overall_commit_closed['Amount (Current Week)'] + overall_commit_closed['Amount (Current Week)_y']
-    overall_commit_closed = overall_commit_closed.drop(['Amount (Current Week)_y'], axis=1)
-
-    # Overall Committed + Closed Won (Previous Week)
-    overall_commit_closed_prev = commit_table[['Sales Owner', 'Amount (Previous Week)']].merge(closed_table[['Sales Owner', 'Amount (Previous Week)']], on="Sales Owner")
-    overall_commit_closed_prev['Overall Committed + Closed Won (Previous Week)'] = overall_commit_closed_prev['Amount (Previous Week)'] + overall_commit_closed_prev['Amount (Previous Week)_y']
-    overall_commit_closed_prev = overall_commit_closed_prev.drop(['Amount (Previous Week)_y'], axis=1)
-
-    # Delta
-    overall_commit_closed['∆ Overall Committed + Closed Won'] = overall_commit_closed['Overall Committed + Closed Won (Current Week)'] - overall_commit_closed_prev['Overall Committed + Closed Won (Previous Week)']
-
-    # Display the combined table
     with col4:
-        st.markdown("### 📈 Overall Committed + Closed Won Comparison (in ₹ Lakhs)")
-        st.dataframe(overall_commit_closed, use_container_width=True)
-
+        overall_table = prepare_table(df_commit_current.append(df_closed_current), df_commit_previous.append(df_closed_previous), "Overall Committed + Closed Won")
+        st.markdown("### 📊 Overall Committed + Closed Won (in ₹ Lakhs)")
+        st.dataframe(overall_table, use_container_width=True)
