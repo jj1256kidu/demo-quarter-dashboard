@@ -49,6 +49,14 @@ if uploaded_file is not None:
     # Header of the Dashboard
     st.title("📊 Quarter Summary Dashboard")
 
+    # Calculate total values for current and previous week overall data
+    total_current_week = df_current["Amount"].sum()
+    total_previous_week = df_previous["Amount"].sum()
+
+    # Display Overall Current and Previous Week totals
+    st.markdown(f"### Overall Total (Current Week): ₹ {total_current_week:,.0f} Lakhs")
+    st.markdown(f"### Overall Total (Previous Week): ₹ {total_previous_week:,.0f} Lakhs")
+
     # Tab Selection: Commitment, Upside, Closed Won, Overall
     tab = st.selectbox("Select Metric for Comparison", ["Commitment", "Upside", "Closed Won", "Overall"])
 
