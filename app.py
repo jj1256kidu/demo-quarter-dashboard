@@ -20,19 +20,22 @@ def preprocess(df):
     df["Amount"] = pd.to_numeric(df["Amount"], errors="coerce").fillna(0)
     return df
 
-# Function to filter data based on selected status
-def filter_data(df, status_type):
-    return df[df["Status"] == status_type]
+# Function to filter data based on selected status and quarter
+def filter_data(df, status_type, selected_quarter):
+    df_filtered = df[df["Status"] == status_type]
+    if selected_quarter != "All":
+        df_filtered = df_filtered[df_filtered["Quarter"] == selected_quarter]
+    return df_filtered
 
 # Function to aggregate data for each sales owner
 def agg_amount(df):
     return df.groupby("Sales Owner")["Amount"].sum().reset_index()
 
 # Function to display the comparison table for sales owners
-def display_sales_owner_table(df_current, df_previous, selected_status):
-    # Filter data for current and previous week based on the selected status
-    df_current_filtered = filter_data(df_current, selected_status)
-    df_previous_filtered = filter_data(df_previous, selected_status)
+def display_sales_owner_table(df_current, df_previous, selected_status, selected_quarter):
+    # Filter data for current and previous week based on the selected status and quarter
+    df_current_filtered = filter_data(df_current, selected_status, selected_quarter)
+    df_previous_filtered = filter_data(df_previous, selected_status, selected_quarter)
 
     # Aggregate the data
     df_current_agg = agg_amount(df_current_filtered).rename(columns={"Amount": "Current Week"})
@@ -66,12 +69,16 @@ def main():
         df_current = preprocess(df_current)
         df_previous = preprocess(df_previous)
 
-        # Filter options for status (Committed or Upside)
+        # Filter options for status (Committed or Upside) and quarter
         status_options = ["Committed for the Month", "Upside for the Month"]
         selected_status = st.selectbox("Select Status", status_options)
 
+        # Quarter filter (including "All" option to show all quarters)
+        quarters = ["All"] + sorted(df_current["Quarter"].unique().tolist())
+        selected_quarter = st.selectbox("Select Quarter", quarters)
+
         # Display the sales owner comparison table
-        display_sales_owner_table(df_current, df_previous, selected_status)
+        display_sales_owner_table(df_current, df_previous, selected_status, selected_quarter)
 
 if __name__ == "__main__":
     main()
