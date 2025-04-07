@@ -118,8 +118,13 @@ def display_sales_owner_table(df_current, df_previous, selected_status, selected
     # Create a DataFrame for displaying the table
     df_table = pd.DataFrame(data)
 
+    # Highlight changes
+    def highlight_delta(val):
+        color = 'green' if val > 0 else 'red' if val < 0 else 'black'
+        return f'color: {color}; font-weight: bold'
+
     st.markdown("### Sales Owner Comparison")
-    st.dataframe(df_table, use_container_width=True)
+    st.dataframe(df_table.style.applymap(highlight_delta, subset=["Delta (Committed)"]), use_container_width=True)
 
 # Streamlit Application
 def main():
