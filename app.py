@@ -71,6 +71,23 @@ st.markdown("""
             }
         }
 
+        /* Table styling */
+        .dataframe {
+            font-size: 1em;
+            background-color: white;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .dataframe th {
+            background-color: #2C3E50;
+            color: white;
+            font-weight: 700;
+            padding: 15px;
+        }
+        .dataframe td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -262,6 +279,19 @@ def display_dashboard():
                 </div>
             </div>
         """, unsafe_allow_html=True)
+
+        # Display Tables with Different Headings Below Cards
+        st.subheader("Committed Data Breakdown")
+        st.dataframe(df_current[['Sales Owner', 'Committed for the Month', 'Amount']], use_container_width=True)
+
+        st.subheader("Upside Data Breakdown")
+        st.dataframe(df_current[['Sales Owner', 'Upside for the Month', 'Amount']], use_container_width=True)
+
+        st.subheader("Closed Won Data Breakdown")
+        st.dataframe(df_current[['Sales Owner', 'Closed Won', 'Amount']], use_container_width=True)
+
+        st.subheader("Overall Committed Data Breakdown")
+        st.dataframe(df_current[['Sales Owner', 'Committed for the Month', 'Closed Won', 'Amount']], use_container_width=True)
 
 def main():
     page = st.sidebar.radio("Select Page", ["Data Input", "Dashboard"])
