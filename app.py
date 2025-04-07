@@ -17,6 +17,27 @@ def filter_status(df, status):
 def agg_amount(df):
     return df.groupby("Sales Owner")["Amount"].sum().reset_index()
 
+# Function to calculate and display metrics (Current Week Total, Previous Week Total, Delta)
+def display_metrics(df_current, df_previous, status, label):
+    # Filter the data based on status
+    df_current_filtered = filter_status(df_current, status)
+    df_previous_filtered = filter_status(df_previous, status)
+
+    # Aggregate the data for current and previous week
+    df_current_agg = agg_amount(df_current_filtered)
+    df_previous_agg = agg_amount(df_previous_filtered)
+
+    # Calculate total values for current and previous week
+    total_current = df_current_agg["Amount"].sum() / 1e5
+    total_previous = df_previous_agg["Amount"].sum() / 1e5
+    delta = total_current - total_previous
+
+    # Display the metrics for the selected status
+    st.markdown(f"### 📝 {label}")
+    st.markdown(f"**Current Week Total**: ₹ {total_current:,.0f} Lakh")
+    st.markdown(f"**Previous Week Total**: ₹ {total_previous:,.0f} Lakh")
+    st.markdown(f"**Delta**: ₹ {delta:,.0f} Lakh")
+
 # Function to display the table with Sales Owner and their data for each status (Committed, Upside, Closed Won, Overall Committed)
 def display_data(df_current, df_previous, status, label):
     # Filter the data based on status
@@ -98,16 +119,20 @@ def main():
         df_current = preprocess(df_current)
         df_previous = preprocess(df_previous)
 
-        # Display the Committed for the Month data
+        # Display the metrics and data for Committed Data
+        display_metrics(df_current, df_previous, "Committed for the Month", "Committed Data")
         display_data(df_current, df_previous, "Committed for the Month", "Committed Data")
 
-        # Display the Upside for the Month data
+        # Display the metrics and data for Upside Data
+        display_metrics(df_current, df_previous, "Upside for the Month", "Upside Data")
         display_data(df_current, df_previous, "Upside for the Month", "Upside Data")
 
-        # Display the Closed Won data
+        # Display the metrics and data for Closed Won Data
+        display_metrics(df_current, df_previous, "Closed Won", "Closed Won Data")
         display_data(df_current, df_previous, "Closed Won", "Closed Won Data")
 
-        # Display the Overall Committed + Closed Won data
+        # Display the metrics and data for Overall Committed Data (Committed + Closed Won)
+        display_metrics(df_current, df_previous, "Committed for the Month", "Overall Committed Data (Committed + Closed Won)")
         display_data(df_current, df_previous, "Committed for the Month", "Overall Committed Data (Committed + Closed Won)")
 
 if __name__ == "__main__":
