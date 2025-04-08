@@ -259,7 +259,7 @@ def display_dashboard():
             </div>
         """, unsafe_allow_html=True)
 
-        # Create KPI Card for Overall Committed Data
+        # Create KPI Card for Overall Committed Data (Committed + Closed Won)
         st.markdown(f"""
             <div class="metric-container">
                 <div class="card">
@@ -291,8 +291,8 @@ def display_dashboard():
         st.dataframe(df_current[df_current['Status'] == 'Closed Won'][['Sales Owner', 'Status', 'Amount']], use_container_width=True)
 
         st.subheader("Overall Committed Data Breakdown")
-        st.dataframe(df_current[df_current['Status'] == 'Committed for the Month'][['Sales Owner', 'Status', 'Amount']].append(
-            df_current[df_current['Status'] == 'Closed Won'][['Sales Owner', 'Status', 'Amount']]), use_container_width=True)
+        st.dataframe(pd.concat([df_current[df_current['Status'] == 'Committed for the Month'][['Sales Owner', 'Status', 'Amount']],
+                                df_current[df_current['Status'] == 'Closed Won'][['Sales Owner', 'Status', 'Amount']]]), use_container_width=True)
 
 def main():
     page = st.sidebar.radio("Select Page", ["Data Input", "Dashboard"])
