@@ -59,7 +59,7 @@ st.markdown("""
             color: #FFFFFF;
             font-weight: 800;
         }
-        @media (max-width: 150px) {
+        @media (max-width: 50px) {
             .metric-container {
                 flex-direction: column;
                 align-items: center;
