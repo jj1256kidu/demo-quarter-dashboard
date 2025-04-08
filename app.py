@@ -282,16 +282,17 @@ def display_dashboard():
 
         # Display Tables with Different Headings Below Cards
         st.subheader("Committed Data Breakdown")
-        st.dataframe(df_current[['Sales Owner', 'Status', 'Amount']], use_container_width=True)
+        st.dataframe(df_current[df_current['Status'] == 'Committed for the Month'][['Sales Owner', 'Status', 'Amount']], use_container_width=True)
 
         st.subheader("Upside Data Breakdown")
-        st.dataframe(df_current[['Sales Owner', 'Status', 'Amount']], use_container_width=True)
+        st.dataframe(df_current[df_current['Status'] == 'Upside for the Month'][['Sales Owner', 'Status', 'Amount']], use_container_width=True)
 
         st.subheader("Closed Won Data Breakdown")
-        st.dataframe(df_current[['Sales Owner', 'Status', 'Amount']], use_container_width=True)
+        st.dataframe(df_current[df_current['Status'] == 'Closed Won'][['Sales Owner', 'Status', 'Amount']], use_container_width=True)
 
         st.subheader("Overall Committed Data Breakdown")
-        st.dataframe(df_current[['Sales Owner', 'Status', 'Amount']], use_container_width=True)
+        st.dataframe(df_current[df_current['Status'] == 'Committed for the Month'][['Sales Owner', 'Status', 'Amount']].append(
+            df_current[df_current['Status'] == 'Closed Won'][['Sales Owner', 'Status', 'Amount']]), use_container_width=True)
 
 def main():
     page = st.sidebar.radio("Select Page", ["Data Input", "Dashboard"])
