@@ -121,7 +121,27 @@ def display_dashboard():
 
     st.title("Sales Dashboard")
 
-    # Filter the relevant columns and prepare the data for display
+    # Filters
+    sales_owners = sorted(df_current['Sales Owner'].dropna().unique())
+    practices = sorted(df_current['Practice'].dropna().unique())
+    selected_sales_owner = st.selectbox("Sales Owner", ["All Sales Owners"] + sales_owners)
+    selected_quarter = st.selectbox("Quarter", ["All Quarters", "Q1", "Q2", "Q3", "Q4"])
+    selected_practice = st.selectbox("Practice", ["All Practices"] + practices)
+
+    # Filter the data based on the selected filters
+    if selected_sales_owner != "All Sales Owners":
+        df_current = df_current[df_current['Sales Owner'] == selected_sales_owner]
+        df_previous = df_previous[df_previous['Sales Owner'] == selected_sales_owner]
+    
+    if selected_practice != "All Practices":
+        df_current = df_current[df_current['Practice'] == selected_practice]
+        df_previous = df_previous[df_previous['Practice'] == selected_practice]
+    
+    if selected_quarter != "All Quarters":
+        df_current = df_current[df_current['Quarter'] == selected_quarter]
+        df_previous = df_previous[df_previous['Quarter'] == selected_quarter]
+
+    # Calculate Overall Committed for the Month (Current Week, Previous Week, Delta)
     df_current['Overall Committed (Current Week)'] = df_current['Committed for the Month'].fillna(0)
     df_previous['Overall Committed (Previous Week)'] = df_previous['Committed for the Month'].fillna(0)
 
@@ -158,7 +178,7 @@ def display_dashboard():
             </div>
             <div class="card">
                 <div class="metric-label">Delta</div>
-                <div class="metric-value {'delta-positive' if committed_delta > 0 else 'delta-negative'}">₹{:.0f}L</div>
+                <div class="metric-value {'delta-positive' if merged_df['Delta'].sum() > 0 else 'delta-negative'}">₹{:.0f}L</div>
                 <div class="metric-label">Change</div>
             </div>
         </div>
