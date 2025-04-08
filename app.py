@@ -12,11 +12,12 @@ st.set_page_config(
 # Custom CSS for modern design
 st.markdown("""
     <style>
-        /* Add your CSS styling here for modern design */
+        /* Flexbox layout for consistent card sizes */
         .metric-container {
             display: flex;
             justify-content: space-evenly;
             margin-top: 40px;
+            flex-wrap: wrap;
         }
         .card {
             background: #2C3E50;
@@ -25,7 +26,12 @@ st.markdown("""
             box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
             text-align: center;
             margin: 15px;
-            width: 20%;
+            flex: 1;
+            min-width: 250px; /* Ensure consistent card width */
+            min-height: 250px; /* Ensure consistent card height */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
         .metric-label {
             font-size: 1.2em;
@@ -36,6 +42,7 @@ st.markdown("""
             font-size: 3.5em;
             color: #FFFFFF;
             font-weight: 800;
+            line-height: 1.1;
         }
         .delta-positive {
             color: #2ECC71;
@@ -43,26 +50,43 @@ st.markdown("""
         .delta-negative {
             color: #E74C3C;
         }
-        .table-container {
+
+        /* Delta Box Styling */
+        .delta-box {
+            background: #34495E;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
             margin-top: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            font-size: 2.5em;
+            color: #FFFFFF;
+            font-weight: 800;
         }
-        .table th {
+
+        /* Responsive Card Layout */
+        @media (max-width: 768px) {
+            .metric-container {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        /* Table styling */
+        .dataframe {
+            font-size: 1em;
+            background-color: white;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .dataframe th {
             background-color: #2C3E50;
             color: white;
             font-weight: 700;
-            padding: 10px;
+            padding: 15px;
         }
-        .table td {
-            text-align: center;
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-        .highlight-row {
-            background-color: #fce8e6;
+        .dataframe td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -121,78 +145,166 @@ def display_dashboard():
 
     st.title("Sales Dashboard")
 
-    # Filters
-    sales_owners = sorted(df_current['Sales Owner'].dropna().unique())
-    practices = sorted(df_current['Practice'].dropna().unique())
-    selected_sales_owner = st.selectbox("Sales Owner", ["All Sales Owners"] + sales_owners)
-    selected_quarter = st.selectbox("Quarter", ["All Quarters", "Q1", "Q2", "Q3", "Q4"])
-    selected_practice = st.selectbox("Practice", ["All Practices"] + practices)
+    # Filters displayed in one row
+    col1, col2, col3 = st.columns([1, 1, 1])  # Create three columns for filters
 
-    # Filter the data based on the selected filters
+    with col1:
+        # Sales Owner Filter
+        sales_owners = sorted(df_current['Sales Owner'].dropna().unique().tolist())
+        selected_sales_owner = st.selectbox("Select Sales Owner", ["All Sales Owners"] + sales_owners)
+
+    with col2:
+        # Quarter Filter
+        quarters = ['Q1', 'Q2', 'Q3', 'Q4']
+        selected_quarter = st.selectbox("Select Quarter", ["All Quarters"] + quarters)
+
+    with col3:
+        # Practice Filter
+        practices = sorted(df_current['Practice'].dropna().unique().tolist())
+        selected_practice = st.selectbox("Select Practice", ["All Practices"] + practices)
+
+    # Apply filters based on selections
     if selected_sales_owner != "All Sales Owners":
         df_current = df_current[df_current['Sales Owner'] == selected_sales_owner]
         df_previous = df_previous[df_previous['Sales Owner'] == selected_sales_owner]
-    
-    if selected_practice != "All Practices":
-        df_current = df_current[df_current['Practice'] == selected_practice]
-        df_previous = df_previous[df_previous['Practice'] == selected_practice]
-    
+
     if selected_quarter != "All Quarters":
         df_current = df_current[df_current['Quarter'] == selected_quarter]
         df_previous = df_previous[df_previous['Quarter'] == selected_quarter]
 
-    # Calculate Overall Committed for the Month (Current Week, Previous Week, Delta)
-    df_current['Overall Committed (Current Week)'] = df_current['Committed for the Month'].fillna(0)
-    df_previous['Overall Committed (Previous Week)'] = df_previous['Committed for the Month'].fillna(0)
+    if selected_practice != "All Practices":
+        df_current = df_current[df_current['Practice'] == selected_practice]
+        df_previous = df_previous[df_previous['Practice'] == selected_practice]
 
-    # Merging current and previous week data by "Sales Owner"
-    merged_df = pd.merge(df_current[['Sales Owner', 'Overall Committed (Current Week)']], 
-                         df_previous[['Sales Owner', 'Overall Committed (Previous Week)']], 
-                         on="Sales Owner", how="outer")
-    
-    # Calculate Delta
-    merged_df['Delta'] = merged_df['Overall Committed (Current Week)'] - merged_df['Overall Committed (Previous Week)']
+    # Check if the required columns exist before processing
+    if 'Committed for the Month' in df_current.columns and 'Committed for the Month' in df_previous.columns:
+        committed_current_week = df_current[df_current['Status'] == "Committed for the Month"]['Amount'].sum()
+        committed_previous_week = df_previous[df_previous['Status'] == "Committed for the Month"]['Amount'].sum()
+    else:
+        committed_current_week = 0
+        committed_previous_week = 0
 
-    # Add a row for "Total"
-    total_row = pd.DataFrame({
-        'Sales Owner': ['Total'],
-        'Overall Committed (Current Week)': [merged_df['Overall Committed (Current Week)'].sum()],
-        'Overall Committed (Previous Week)': [merged_df['Overall Committed (Previous Week)'].sum()],
-        'Delta': [merged_df['Delta'].sum()]
-    })
-    
-    merged_df = pd.concat([merged_df, total_row], ignore_index=True)
+    if 'Upside for the Month' in df_current.columns and 'Upside for the Month' in df_previous.columns:
+        upside_current_week = df_current[df_current['Status'] == "Upside for the Month"]['Amount'].sum()
+        upside_previous_week = df_previous[df_previous['Status'] == "Upside for the Month"]['Amount'].sum()
+    else:
+        upside_current_week = 0
+        upside_previous_week = 0
 
-    # Display KPI Cards
-    st.markdown("""
-        <div class="metric-container">
-            <div class="card">
-                <div class="metric-label">Committed Data (Current Week)</div>
-                <div class="metric-value">₹{:.0f}L</div>
-                <div class="metric-label">Current Week Total</div>
+    if 'Closed Won' in df_current.columns and 'Closed Won' in df_previous.columns:
+        closed_won_current_week = df_current[df_current['Status'] == "Closed Won"]['Amount'].sum()
+        closed_won_previous_week = df_previous[df_previous['Status'] == "Closed Won"]['Amount'].sum()
+    else:
+        closed_won_current_week = 0
+        closed_won_previous_week = 0
+
+    # Calculate deltas
+    committed_delta = committed_current_week - committed_previous_week
+    upside_delta = upside_current_week - upside_previous_week
+    closed_won_delta = closed_won_current_week - closed_won_previous_week
+
+    # Calculate overall committed data (Committed + Closed Won)
+    overall_committed_current_week = committed_current_week + closed_won_current_week
+    overall_committed_previous_week = committed_previous_week + closed_won_previous_week
+    overall_committed_delta = overall_committed_current_week - overall_committed_previous_week
+
+    # Create KPI Card for Committed Data
+    with st.container():
+        st.markdown(f"""
+            <div class="metric-container">
+                <div class="card">
+                    <div class="metric-label">Committed Data (Current Week)</div>
+                    <div class="metric-value">₹{committed_current_week / 100000:.0f}L</div>
+                    <div class="metric-label">Current Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Committed Data (Previous Week)</div>
+                    <div class="metric-value">₹{committed_previous_week / 100000:.0f}L</div>
+                    <div class="metric-label">Previous Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Delta</div>
+                    <div class="metric-value {'delta-positive' if committed_delta > 0 else 'delta-negative'}">₹{committed_delta / 100000:.0f}L</div>
+                    <div class="metric-label">Change</div>
+                </div>
             </div>
-            <div class="card">
-                <div class="metric-label">Committed Data (Previous Week)</div>
-                <div class="metric-value">₹{:.0f}L</div>
-                <div class="metric-label">Previous Week Total</div>
-            </div>
-            <div class="card">
-                <div class="metric-label">Delta</div>
-                <div class="metric-value {'delta-positive' if merged_df['Delta'].sum() > 0 else 'delta-negative'}">₹{:.0f}L</div>
-                <div class="metric-label">Change</div>
-            </div>
-        </div>
-    """.format(
-        merged_df['Overall Committed (Current Week)'].sum() / 100000,
-        merged_df['Overall Committed (Previous Week)'].sum() / 100000,
-        merged_df['Delta'].sum() / 100000
-    ), unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-    # Display the data table with static rows
-    st.subheader("Sales Owner Breakdown")
-    st.markdown("<div class='table-container'>", unsafe_allow_html=True)
-    st.dataframe(merged_df, use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+        # Create KPI Card for Upside Data
+        st.markdown(f"""
+            <div class="metric-container">
+                <div class="card">
+                    <div class="metric-label">Upside Data (Current Week)</div>
+                    <div class="metric-value">₹{upside_current_week / 100000:.0f}L</div>
+                    <div class="metric-label">Current Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Upside Data (Previous Week)</div>
+                    <div class="metric-value">₹{upside_previous_week / 100000:.0f}L</div>
+                    <div class="metric-label">Previous Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Delta</div>
+                    <div class="metric-value {'delta-positive' if upside_delta > 0 else 'delta-negative'}">₹{upside_delta / 100000:.0f}L</div>
+                    <div class="metric-label">Change</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # Create KPI Card for Closed Won Data
+        st.markdown(f"""
+            <div class="metric-container">
+                <div class="card">
+                    <div class="metric-label">Closed Won (Current Week)</div>
+                    <div class="metric-value">₹{closed_won_current_week / 100000:.0f}L</div>
+                    <div class="metric-label">Current Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Closed Won (Previous Week)</div>
+                    <div class="metric-value">₹{closed_won_previous_week / 100000:.0f}L</div>
+                    <div class="metric-label">Previous Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Delta</div>
+                    <div class="metric-value {'delta-positive' if closed_won_delta > 0 else 'delta-negative'}">₹{closed_won_delta / 100000:.0f}L</div>
+                    <div class="metric-label">Change</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # Create KPI Card for Overall Committed Data
+        st.markdown(f"""
+            <div class="metric-container">
+                <div class="card">
+                    <div class="metric-label">Overall Committed Data (Current Week)</div>
+                    <div class="metric-value">₹{overall_committed_current_week / 100000:.0f}L</div>
+                    <div class="metric-label">Current Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Overall Committed Data (Previous Week)</div>
+                    <div class="metric-value">₹{overall_committed_previous_week / 100000:.0f}L</div>
+                    <div class="metric-label">Previous Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Delta</div>
+                    <div class="metric-value {'delta-positive' if overall_committed_delta > 0 else 'delta-negative'}">₹{overall_committed_delta / 100000:.0f}L</div>
+                    <div class="metric-label">Change</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # Display Tables with Different Headings Below Cards
+        st.subheader("Committed Data Breakdown")
+        st.dataframe(df_current[['Sales Owner', 'Status', 'Amount']], use_container_width=True)
+
+        st.subheader("Upside Data Breakdown")
+        st.dataframe(df_current[['Sales Owner', 'Status', 'Amount']], use_container_width=True)
+
+        st.subheader("Closed Won Data Breakdown")
+        st.dataframe(df_current[['Sales Owner', 'Status', 'Amount']], use_container_width=True)
+
+        st.subheader("Overall Committed Data Breakdown")
+        st.dataframe(df_current[['Sales Owner', 'Status', 'Amount']], use_container_width=True)
 
 def main():
     page = st.sidebar.radio("Select Page", ["Data Input", "Dashboard"])
