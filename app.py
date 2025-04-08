@@ -27,7 +27,7 @@ st.markdown("""
             margin: 15px;
             flex: 1;
             min-width: 50px;
-            min-height: 150px;
+            min-height: 50px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
