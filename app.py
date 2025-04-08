@@ -21,7 +21,7 @@ st.markdown("""
         .card {
             background: #2C3E50;
             padding: 10px;
-            border-radius: 12px;
+            border-radius: 10px;
             box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
             text-align: center;
             margin: 10px;
