@@ -217,20 +217,81 @@ def display_dashboard():
             </div>
         """, unsafe_allow_html=True)
 
-        # Display Committed Data Breakdown Table
-        st.subheader("Committed Data Breakdown Table")
-        committed_data = pd.DataFrame({
-            'Sales Owner': df_current['Sales Owner'].unique(),
-            'Current Week Total': df_current.groupby('Sales Owner')['Amount'].sum() / 100000,
-            'Previous Week Total': df_previous.groupby('Sales Owner')['Amount'].sum() / 100000
-        })
+        # Create KPI Card for Upside Data
+        st.markdown(f"""
+            <div class="metric-container">
+                <div class="card">
+                    <div class="metric-label">Upside Data (Current Week)</div>
+                    <div class="metric-value">₹{upside_current_week / 100000:.0f}L</div>
+                    <div class="metric-label">Current Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Upside Data (Previous Week)</div>
+                    <div class="metric-value">₹{upside_previous_week / 100000:.0f}L</div>
+                    <div class="metric-label">Previous Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Delta</div>
+                    <div class="metric-value {'delta-positive' if upside_delta > 0 else 'delta-negative'}">₹{upside_delta / 100000:.0f}L</div>
+                    <div class="metric-label">Change</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
 
-        committed_data['Delta'] = committed_data['Current Week Total'] - committed_data['Previous Week Total']
-        committed_data['Current Week Total'] = committed_data['Current Week Total'].apply(lambda x: f"₹{x:.0f}L")
-        committed_data['Previous Week Total'] = committed_data['Previous Week Total'].apply(lambda x: f"₹{x:.0f}L")
-        committed_data['Delta'] = committed_data['Delta'].apply(lambda x: f"₹{x:.0f}L")
+        # Create KPI Card for Closed Won Data
+        st.markdown(f"""
+            <div class="metric-container">
+                <div class="card">
+                    <div class="metric-label">Closed Won (Current Week)</div>
+                    <div class="metric-value">₹{closed_won_current_week / 100000:.0f}L</div>
+                    <div class="metric-label">Current Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Closed Won (Previous Week)</div>
+                    <div class="metric-value">₹{closed_won_previous_week / 100000:.0f}L</div>
+                    <div class="metric-label">Previous Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Delta</div>
+                    <div class="metric-value {'delta-positive' if closed_won_delta > 0 else 'delta-negative'}">₹{closed_won_delta / 100000:.0f}L</div>
+                    <div class="metric-label">Change</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
 
-        st.dataframe(committed_data, use_container_width=True)
+        # Create KPI Card for Overall Committed Data
+        st.markdown(f"""
+            <div class="metric-container">
+                <div class="card">
+                    <div class="metric-label">Overall Committed Data (Current Week)</div>
+                    <div class="metric-value">₹{overall_committed_current_week / 100000:.0f}L</div>
+                    <div class="metric-label">Current Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Overall Committed Data (Previous Week)</div>
+                    <div class="metric-value">₹{overall_committed_previous_week / 100000:.0f}L</div>
+                    <div class="metric-label">Previous Week Total</div>
+                </div>
+                <div class="card">
+                    <div class="metric-label">Delta</div>
+                    <div class="metric-value {'delta-positive' if overall_committed_delta > 0 else 'delta-negative'}">₹{overall_committed_delta / 100000:.0f}L</div>
+                    <div class="metric-label">Change</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # Display Tables with Different Headings Below Cards
+        st.subheader("Committed Data Breakdown")
+        st.dataframe(df_current[['Sales Owner', 'Status', 'Amount']], use_container_width=True)
+
+        st.subheader("Upside Data Breakdown")
+        st.dataframe(df_current[['Sales Owner', 'Status', 'Amount']], use_container_width=True)
+
+        st.subheader("Closed Won Data Breakdown")
+        st.dataframe(df_current[['Sales Owner', 'Status', 'Amount']], use_container_width=True)
+
+        st.subheader("Overall Committed Data Breakdown")
+        st.dataframe(df_current[['Sales Owner', 'Status', 'Amount']], use_container_width=True)
 
 def main():
     page = st.sidebar.radio("Select Page", ["Data Input", "Dashboard"])
