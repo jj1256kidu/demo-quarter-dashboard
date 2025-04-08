@@ -176,27 +176,14 @@ def display_dashboard():
         df_current = df_current[df_current['Practice'] == selected_practice]
         df_previous = df_previous[df_previous['Practice'] == selected_practice]
 
-    # Check if the required columns exist before processing
-    if 'Committed for the Month' in df_current.columns and 'Committed for the Month' in df_previous.columns:
-        committed_current_week = df_current[df_current['Status'] == "Committed for the Month"]['Amount'].sum()
-        committed_previous_week = df_previous[df_previous['Status'] == "Committed for the Month"]['Amount'].sum()
-    else:
-        committed_current_week = 0
-        committed_previous_week = 0
+    # Filter the data based on "Status" column to check for Committed, Upside, and Closed Won data
+    committed_current_week = df_current[df_current['Status'] == "Committed for the Month"]['Amount'].sum()
+    upside_current_week = df_current[df_current['Status'] == "Upside for the Month"]['Amount'].sum()
+    closed_won_current_week = df_current[df_current['Status'] == "Closed Won"]['Amount'].sum()
 
-    if 'Upside for the Month' in df_current.columns and 'Upside for the Month' in df_previous.columns:
-        upside_current_week = df_current[df_current['Status'] == "Upside for the Month"]['Amount'].sum()
-        upside_previous_week = df_previous[df_previous['Status'] == "Upside for the Month"]['Amount'].sum()
-    else:
-        upside_current_week = 0
-        upside_previous_week = 0
-
-    if 'Closed Won' in df_current.columns and 'Closed Won' in df_previous.columns:
-        closed_won_current_week = df_current[df_current['Status'] == "Closed Won"]['Amount'].sum()
-        closed_won_previous_week = df_previous[df_previous['Status'] == "Closed Won"]['Amount'].sum()
-    else:
-        closed_won_current_week = 0
-        closed_won_previous_week = 0
+    committed_previous_week = df_previous[df_previous['Status'] == "Committed for the Month"]['Amount'].sum()
+    upside_previous_week = df_previous[df_previous['Status'] == "Upside for the Month"]['Amount'].sum()
+    closed_won_previous_week = df_previous[df_previous['Status'] == "Closed Won"]['Amount'].sum()
 
     # Calculate deltas
     committed_delta = committed_current_week - committed_previous_week
@@ -293,18 +280,20 @@ def display_dashboard():
             </div>
         """, unsafe_allow_html=True)
 
-        # Display Tables with Different Headings Below Cards
-        st.subheader("Committed Data Breakdown")
-        st.dataframe(df_current[['Sales Owner', 'Status', 'Amount']], use_container_width=True)
+        # Create the table with "Sales Owner", "Current Week Total", "Previous Week Total", and "Delta"
+        st.subheader("Committed Data Breakdown Table")
+        committed_data = pd.DataFrame({
+            'Sales Owner': df_current['Sales Owner'].unique(),
+            'Current Week Total': df_current.groupby('Sales Owner')['Amount'].sum() / 100000,
+            'Previous Week Total': df_previous.groupby('Sales Owner')['Amount'].sum() / 100000
+        })
 
-        st.subheader("Upside Data Breakdown")
-        st.dataframe(df_current[['Sales Owner', 'Status', 'Amount']], use_container_width=True)
+        committed_data['Delta'] = committed_data['Current Week Total'] - committed_data['Previous Week Total']
+        committed_data['Current Week Total'] = committed_data['Current Week Total'].apply(lambda x: f"₹{x:.0f}L")
+        committed_data['Previous Week Total'] = committed_data['Previous Week Total'].apply(lambda x: f"₹{x:.0f}L")
+        committed_data['Delta'] = committed_data['Delta'].apply(lambda x: f"₹{x:.0f}L")
 
-        st.subheader("Closed Won Data Breakdown")
-        st.dataframe(df_current[['Sales Owner', 'Status', 'Amount']], use_container_width=True)
-
-        st.subheader("Overall Committed Data Breakdown")
-        st.dataframe(df_current[['Sales Owner', 'Status', 'Amount']], use_container_width=True)
+        st.dataframe(committed_data, use_container_width=True)
 
 def main():
     page = st.sidebar.radio("Select Page", ["Data Input", "Dashboard"])
