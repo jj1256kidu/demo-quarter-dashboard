@@ -26,7 +26,7 @@ st.markdown("""
             text-align: center;
             margin: 10px;
             flex: 1;
-            min-width: 0.5px;
+            min-width: 0.05px;
             min-height: 10px;
             display: flex;
             flex-direction: column;
@@ -35,7 +35,7 @@ st.markdown("""
         .metric-label {
             font-size: 1.2em;
             color: #BDC3C7;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
         .metric-value {
             font-size: 3.5em;
@@ -51,15 +51,15 @@ st.markdown("""
         }
         .delta-box {
             background: #34495E;
-            padding: 20px;
-            border-radius: 12px;
+            padding: 10px;
+            border-radius: 10px;
             box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
-            margin-top: 20px;
+            margin-top: 10px;
             font-size: 2.5em;
             color: #FFFFFF;
             font-weight: 800;
         }
-        @media (max-width: 768px) {
+        @media (max-width: 150px) {
             .metric-container {
                 flex-direction: column;
                 align-items: center;
