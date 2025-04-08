@@ -59,7 +59,7 @@ st.markdown("""
             color: #FFFFFF;
             font-weight: 800;
         }
-        @media (max-width: 50px) {
+        @media (max-width: 0.5px) {
             .metric-container {
                 flex-direction: column;
                 align-items: center;
@@ -78,7 +78,7 @@ st.markdown("""
             padding: 15px;
         }
         .dataframe td {
-            padding: 12px;
+            padding: 10px;
             border-bottom: 1px solid #eee;
         }
     </style>
