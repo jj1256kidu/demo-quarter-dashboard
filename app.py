@@ -14,35 +14,34 @@ st.markdown("""
     <style>
         .metric-container {
             display: flex;
-            justify-content: center;
+            justify-content: space-evenly;
+            margin-top: 40px;
             flex-wrap: wrap;
-            gap: 20px;
-            margin-top: 30px;
         }
         .card {
             background: #2C3E50;
-            padding: 15px 10px;
-            border-radius: 10px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
             text-align: center;
-            flex: 0 0 250px;
-            min-width: 200px;
-            min-height: 150px;
+            margin: 15px;
+            flex: 1;
+            min-width: 250px;
+            min-height: 250px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            justify-content: space-between;
         }
         .metric-label {
-            font-size: 1em;
+            font-size: 1.2em;
             color: #BDC3C7;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
         }
         .metric-value {
-            font-size: 2.2em;
+            font-size: 3.5em;
             color: #FFFFFF;
             font-weight: 800;
-            line-height: 1.2;
+            line-height: 1.1;
         }
         .delta-positive {
             color: #2ECC71;
@@ -50,15 +49,39 @@ st.markdown("""
         .delta-negative {
             color: #E74C3C;
         }
-
+        .delta-box {
+            background: #34495E;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+            font-size: 2.5em;
+            color: #FFFFFF;
+            font-weight: 800;
+        }
         @media (max-width: 768px) {
             .metric-container {
                 flex-direction: column;
                 align-items: center;
             }
         }
+        .dataframe {
+            font-size: 1em;
+            background-color: white;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .dataframe th {
+            background-color: #2C3E50;
+            color: white;
+            font-weight: 700;
+            padding: 15px;
+        }
+        .dataframe td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
     </style>
-""", unsafe_allow_html=True)
 """, unsafe_allow_html=True)
 
 # Function to display data input (upload and preview)
