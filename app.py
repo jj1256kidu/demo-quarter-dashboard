@@ -20,14 +20,14 @@ st.markdown("""
         }
         .card {
             background: #2C3E50;
-            padding: 20px;
+            padding: 10px;
             border-radius: 12px;
             box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
             text-align: center;
-            margin: 15px;
+            margin: 10px;
             flex: 1;
-            min-width: 50px;
-            min-height: 50px;
+            min-width: 10px;
+            min-height: 10px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
