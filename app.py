@@ -15,7 +15,7 @@ st.markdown("""
         .metric-container {
             display: flex;
             justify-content: space-evenly;
-            margin-top: 40px;
+            margin-top: 10px;
             flex-wrap: wrap;
         }
         .card {
