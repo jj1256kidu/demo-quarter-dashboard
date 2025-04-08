@@ -26,8 +26,8 @@ st.markdown("""
             text-align: center;
             margin: 15px;
             flex: 1;
-            min-width: 250px;
-            min-height: 250px;
+            min-width: 150px;
+            min-height: 150px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
